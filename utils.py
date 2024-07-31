@@ -17,7 +17,6 @@ class Utils:
     @staticmethod
     def get_dir_hash(local_path: str, cur_hash: xxh3_128) -> xxh3_128:
         assert path.isdir(local_path)
-        cur_hash.update(local_path)
         for root, dirs, files in walk(local_path):
             for file in files:
                 cur_hash = Utils.get_file_hash(path.join(root, file), cur_hash)
