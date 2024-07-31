@@ -15,23 +15,23 @@ class VersionControl:
         self.repo_path = os.path.abspath(os.path.join(path, ".kit"))
         self.username = username
         self.drive = DriveManager(path)
-        self.last_commit_id = VersionControl.__get_last_commit_id(self.repo_path)
+        self.head = VersionControl.__get_head(self.repo_path)
         self.seed = VersionControl.__get_seed(self.repo_path)
 
     def init(self):
         if os.path.exists(self.repo_path):
             raise RepositoryAlreadyExistError
 
-        self.last_commit_id = None
+        self.head = None
         self.seed = randint(10000000, 99999999)
         self.__create_directories()
         self.commit("initial commit")
 
         with open(os.path.join(self.repo_path, 'SEED'), 'w') as seed:
-            seed.write(f'seed: {self.seed}\n')
+            seed.write(f'{self.seed}\n')
 
         with open(os.path.join(self.repo_path, 'Refs', 'heads', 'main'), 'w') as main:
-            main.write(f'ref: {self.last_commit_id}\n')
+            main.write(f'{self.head}\n')
 
         self.__update_head()
 
@@ -40,38 +40,33 @@ class VersionControl:
         file_path = os.path.join(self.path, local_path)
 
         with open(index_path, 'a') as index:
-            index.write(f"path: {local_path}, hash: {Utils.get_file_hash(file_path, xxh3_128(seed=self.seed)).hexdigest()}\n")
+            if not os.path.isdir(file_path):
+                index.write(f"{local_path} {Utils.get_file_hash(file_path, xxh3_128(seed=self.seed)).hexdigest()}\n")
+                return
+
+            for root, _, files in os.walk(file_path):
+                for file in files:
+                    file_full_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_full_path, start=self.path)
+                    self.add(relative_path)
 
     def commit(self, description: str):
-        index_path = os.path.join(self.repo_path, 'index')
+        tree_hash = 1#Utils.get_tree_hash(self.repo_path)
 
-        if not os.path.exists(index_path) and self.last_commit_id is not None:
+        if self.head is not None and tree_hash == self.__get_head_tree_hash():
             raise NothingToCommitError
 
         commit_id = xxh3_128(self.username + description + datetime.now().isoformat(), seed=self.seed).hexdigest()
-        objects_path = os.path.join(self.repo_path, 'Objects')
-        os.makedirs(os.path.join(objects_path, commit_id[:2]), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, 'Objects', commit_id[:2]), exist_ok=True)
 
-        with open(os.path.join(objects_path, commit_id[:2], commit_id[2:]), 'w') as commit:
-            commit.write(f"User: {self.username}\n")
-            commit.write(f"Date: {datetime.now()}\n")
-            commit.write(f"Description: {description}\n")
+        with open(os.path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:]), 'w') as commit:
+            commit.write(f"{self.username}\n")
+            commit.write(f"{datetime.now()}\n")
+            commit.write(f"{description}\n")
+            commit.write(f"{tree_hash}\n")
+            commit.write(f"{self.head}\n")
 
-            tree_hash = Utils.create_tree(self.repo_path)
-
-            if self.__is_high_difference(tree_hash):
-                commit.write(f"Type: diff\n")
-            else:
-                commit.write(f"Type: full\n")
-
-            if self.last_commit_id is not None:
-                commit.write(f"Tree: {tree_hash}\n")
-                commit.write(f"Parent: {self.last_commit_id}\n")
-
-            self.last_commit_id = commit_id
-
-        if os.path.isfile(index_path):
-            os.remove(index_path)
+            self.head = commit_id
 
         self.__update_head()
 
@@ -82,7 +77,7 @@ class VersionControl:
             raise BranchAlreadyExitsError
 
         with open(branch_path, 'w') as branch:
-            branch.write(self.last_commit_id)
+            branch.write(self.head)
 
     def checkout(self):
         pass #TODO
@@ -92,7 +87,7 @@ class VersionControl:
 
     def __update_head(self):
         with open(os.path.join(self.repo_path, 'HEAD'), 'w') as head:
-            head.write(f'ref: {self.last_commit_id}\n')
+            head.write(f'{self.head}\n')
 
     def __create_directories(self):
         os.makedirs(self.repo_path, exist_ok=True)
@@ -100,24 +95,28 @@ class VersionControl:
         os.makedirs(os.path.join(self.repo_path, 'Refs'), exist_ok=True)
         os.makedirs(os.path.join(self.repo_path, 'Refs', 'heads'), exist_ok=True)
 
-    def __is_high_difference(self, tree_hash):
-        pass
+    def __get_head_tree_hash(self):
+        folder = self.head[:2]
+        name = self.head[2:]
+
+        with open(os.path.join(self.repo_path, 'Objects', folder, name), 'r') as head:
+            return head[3]
 
     @staticmethod
-    def __get_last_commit_id(path):
+    def __get_head(path):
         head_path = os.path.join(path, 'HEAD')
 
         if not os.path.exists(head_path):
             return None
 
         with open(head_path, 'r') as head_file:
-            ref = head_file.readline().strip().split(': ')[1]
+            ref = head_file.readline()
 
         ref_path = os.path.join(path, ref)
 
         if os.path.exists(ref_path):
             with open(ref_path, 'r') as ref_file:
-                return ref_file.readline().strip()
+                return ref_file.readline()
 
         return None
 
@@ -129,4 +128,4 @@ class VersionControl:
             return None
 
         with open(seed_path, 'r') as head_file:
-            return int(head_file.readline().strip().split(': ')[1])
+            return int(head_file.readline())
