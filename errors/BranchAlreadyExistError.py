@@ -1,4 +1,4 @@
-class RepositoryAlreadyExistError(Exception):
+class BranchAlreadyExitsError(Exception):
     def __init__(self, *args):
         if args:
             self.message = args[0]
@@ -7,6 +7,6 @@ class RepositoryAlreadyExistError(Exception):
 
     def __str__(self):
         if self.message:
-            return f'RepositoryAlreadyExistError: {self.message}'
+            return f'BranchAlreadyExitsError: {self.message}'
         else:
-            return f'RepositoryAlreadyExistError'
+            return f'BranchAlreadyExitsError'

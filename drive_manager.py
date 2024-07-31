@@ -30,6 +30,17 @@ class DriveManager:
 
         return lzma.decompress(compressed_data)
 
+    def load_commmit(self, hash):
+        folder = hash[:2]
+        name = hash[2:]
+
+        with open(os.path.join(self.repo_path, 'Objects', folder, name), 'rb') as commit:
+            commit_data = commit.readlines()
+            if len(commit_data) > 3:
+                tree_hash = commit_data[3]
+            else:
+                tree_hash = None
+
     def __get_original_file_location(self, hash):
         with open(os.path.join(self.repo_path, 'INDEX'), 'r') as index:
             for file in index.readlines():
@@ -41,4 +52,3 @@ class DriveManager:
                     return file_path
 
         return None
-
