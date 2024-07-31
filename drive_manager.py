@@ -7,12 +7,12 @@ class DriveManager:
         self.path = path
         self.repo_path = os.path.join(self.path, '.kit')
 
-    def save(self, hash):
-        folder = hash[:2]
-        name = hash[2:]
-        local_path = self.__get_original_file_location(hash)
+    def save_file(self, file_hash):
+        folder = file_hash[:2]
+        name = file_hash[2:]
+        local_path = self.__get_original_file_location(file_hash)
 
-        with open(os.path.join(self.path,local_path), 'rb') as file:
+        with open(os.path.join(self.path, local_path), 'rb') as file:
             data = bytes(file.read())
             compressed_data = lzma.compress(data)
 
@@ -21,14 +21,24 @@ class DriveManager:
         with open(os.path.join(self.repo_path, 'Objects', folder, name), 'wb') as file:
             file.write(compressed_data)
 
-    def load(self, hash):
-        folder = hash[:2]
-        name = hash[2:]
+    def save_commit(self, hash):
+        pass #TODO
+
+    def load_file(self, file_hash):
+        folder = file_hash[:2]
+        name = file_hash[2:]
 
         with open(os.path.join(self.repo_path, 'Objects', folder, name), 'rb') as file:
             compressed_data = file.read()
 
         return lzma.decompress(compressed_data)
+
+    def load_commit(self, hash):
+        tree_hash = self.__get_tree_hash(hash)
+        folder = tree_hash[:2]
+        name = tree_hash[2:]
+
+        pass #TODO
 
     def __get_original_file_location(self, hash):
         with open(os.path.join(self.repo_path, 'INDEX'), 'r') as index:
@@ -42,3 +52,9 @@ class DriveManager:
 
         return None
 
+    def __get_tree_hash(self, commit_hash):
+        folder = commit_hash[:2]
+        name = commit_hash[2:]
+
+        with open(os.path.join(self.repo_path, 'Objects', folder, name), 'r') as commit:
+            return commit.readlines()[3]
