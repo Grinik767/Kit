@@ -57,9 +57,4 @@ class DriveManager:
         name = commit_hash[2:]
 
         with open(os.path.join(self.repo_path, 'Objects', folder, name), 'r') as commit:
-            commit_data = commit.readlines()
-
-            if len(commit_data) > 3:
-                return commit_data[3]
-
-        return None
+            return commit.readlines()[3]

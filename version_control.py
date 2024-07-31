@@ -51,7 +51,7 @@ class VersionControl:
                     self.add(relative_path)
 
     def commit(self, description: str):
-        tree_hash = 1#Utils.get_tree_hash(self.repo_path)
+        tree_hash = Utils.get_tree_hash(self.repo_path)
 
         if self.head is not None and tree_hash == self.__get_head_tree_hash():
             raise NothingToCommitError
