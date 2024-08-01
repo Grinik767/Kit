@@ -1,8 +1,6 @@
+import errors
 from os import path
 from drive_manager import DriveManager
-from errors.NothingToCommitError import NothingToCommitError
-from errors.RepositoryAlreadyExistError import RepositoryAlreadyExistError
-from errors.BranchAlreadyExistError import BranchAlreadyExitsError
 from utils import Utils
 from xxhash import xxh3_128
 from random import randint
@@ -10,7 +8,7 @@ from datetime import datetime
 
 
 class VersionControl:
-    def __init__(self, username, workspace_path):
+    def __init__(self, username: str, workspace_path: str) -> None:
         self.username = username
         self.workspace_path = workspace_path
         self.repo_path = path.abspath(path.join(workspace_path, ".kit"))
@@ -20,12 +18,12 @@ class VersionControl:
         self.seed = self.drive.get_seed()
         self.current_id = self.drive.get_last_commit_id(self.head)
 
-    def init(self):
+    def init(self) -> None:
         if self.drive.is_exist('.kit'):
-            raise RepositoryAlreadyExistError
+            raise errors.AlreadyExistError.AlreadyExistError(f'This directory already have repository')
 
         self.head = path.join('Refs', 'heads', 'main')
-        self.seed = randint(10**7, 10**8 - 1)
+        self.seed = randint(10 ** 7, 10 ** 8 - 1)
 
         self.drive.initialize_directories()
         self.commit("initial commit")
@@ -34,14 +32,31 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'SEED'), str(self.seed))
         self.drive.write(path.join('.kit', self.head), self.current_id)
 
-    def add(self, local_path: str):
+    def add(self, local_path: str) -> None:
         self.drive.write_index_data(local_path, self.seed)
 
-    def commit(self, description: str):
+    def remove(self, local_path: str) -> None:
+        index_path = path.join('.kit', 'INDEX')
+        data = self.drive.read(index_path)
+        new_data = []
+
+        for line in data.split():
+            file_path, hash = line.split()
+            if file_path == local_path:
+                continue
+
+            new_data.append(f'{file_path} {hash}')
+
+        self.drive.write(index_path, data.join('\n'))
+
+    def commit(self, description: str) -> None:
+        if self.head is None:
+            raise errors.NotOnBranchError.NotOnBranchError
+
         index_path = path.join('.kit', 'INDEX')
 
         if self.current_id is not None and not self.drive.is_exist(index_path):
-            raise NothingToCommitError
+            raise errors.NothingToCommitError.NothingToCommitError
 
         commit_id = xxh3_128(self.username + description + datetime.now().isoformat(), seed=self.seed).hexdigest()
         tree_hash = Utils.get_tree_hash(self.repo_path, self.seed)
@@ -58,16 +73,46 @@ class VersionControl:
         if self.drive.is_exist(index_path):
             self.drive.remove(index_path)
 
-    def branch(self, name):
+    def branch(self, name: str) -> None:
         branch_path = path.join('.kit', 'Refs', 'heads', name)
 
         if self.drive.is_exist(branch_path):
-            raise BranchAlreadyExitsError
+            raise errors.AlreadyExistError.AlreadyExistError(f'Branch named {name} already exist')
 
         self.drive.write(branch_path, self.current_id)
 
-    def checkout(self):
-        pass #TODO
+    def tag(self, name: str, description: str = None) -> None:
+        tag_path = path.join('.kit', 'Refs', 'tags', name)
 
-    def log(self):
+        if self.drive.is_exist(tag_path):
+            raise errors.AlreadyExistError.AlreadyExistError(f'Tag named {name} already exist')
+
+        self.drive.write(tag_path, f"{self.username}\n{datetime.now()}\n{description}\n{self.current_id}")
+
+    def checkout(self, name: str) -> None:
+        tag_path = path.join('.kit', 'Refs', 'tags', name)
+        branch_path = path.join('.kit', 'Refs', 'heads', name)
+        index_path = path.join('.kit', 'INDEX')
+
+        if self.drive.is_exist(tag_path):
+            commit_id = self.drive.read(path.join('.kit', 'Refs', 'tags', name))
+            self.drive.write(path.join('.kit', 'HEAD'), 'None')
+
+        elif self.drive.is_exist(branch_path):
+            commit_id = self.drive.read(branch_path)
+            self.drive.write(path.join('.kit', 'HEAD'), branch_path)
+        else:
+            commit_id = name
+
+        if self.drive.is_exist(index_path):
+            raise errors.UncommitedChangesError.UncommitedChangesError
+
+        self.head = self.drive.get_head()
+        folder = commit_id[:2]
+        filename = commit_id[2:]
+        tree_id = self.drive.read(path.join('.kit', 'Objects', folder, filename)).split()[3]
+
+        #TODO Вызов отгрузки
+
+    def log(self) -> None:
         pass #TODO

@@ -1,4 +1,4 @@
-class BranchAlreadyExitsError(Exception):
+class UncommitedChangesError(Exception):
     def __init__(self, *args):
         if args:
             self.message = args[0]
@@ -7,6 +7,6 @@ class BranchAlreadyExitsError(Exception):
 
     def __str__(self):
         if self.message:
-            return f'BranchAlreadyExitsError: {self.message}'
+            return f'UncommitedChangesError: {self.message}'
         else:
-            return f'BranchAlreadyExitsError'
+            return f'UncommitedChangesError'

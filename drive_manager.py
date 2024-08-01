@@ -55,14 +55,14 @@ class DriveManager:
         with open(os.path.join(self.workspace_path, local_path), 'w') as file:
             file.write(data)
 
+    def read(self, local_path):
+        with open(os.path.join(self.workspace_path, local_path), 'r') as file:
+            return file.read()
+
     def write_commit_data(self, commit_id, username, datetime, description, tree, parent):
         os.makedirs(os.path.join(self.repo_path, 'Objects', commit_id[:2]), exist_ok=True)
         with open(os.path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:]), 'w') as commit:
-            commit.write(f"{username}\n")
-            commit.write(f"{datetime}\n")
-            commit.write(f"{description}\n")
-            commit.write(f"{tree}\n")
-            commit.write(f"{parent}")
+            commit.write(f"{username}\n{datetime}\n{description}\n{tree}\n{parent}")
 
     def write_index_data(self, local_path: str, seed: int):
         index_path = os.path.join(self.repo_path, 'INDEX')
@@ -84,6 +84,7 @@ class DriveManager:
         os.makedirs(os.path.join(self.repo_path, 'Objects'), exist_ok=True)
         os.makedirs(os.path.join(self.repo_path, 'Refs'), exist_ok=True)
         os.makedirs(os.path.join(self.repo_path, 'Refs', 'heads'), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, 'Refs', 'tags'), exist_ok=True)
 
         open(os.path.join(self.repo_path, 'INDEX'), 'w').close()
 
@@ -94,7 +95,12 @@ class DriveManager:
             return None
 
         with open(head_path, 'r') as head_file:
-            return head_file.readline()
+            data = head_file.readline()
+
+            if data == 'None':
+                return None
+
+            return data
 
     def get_seed(self):
         seed_path = os.path.join(self.repo_path, 'SEED')
