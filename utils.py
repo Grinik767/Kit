@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from os import path, walk
 from xxhash import xxh3_128
+from distutils.dir_util import copy_tree
 import pytest
 
 

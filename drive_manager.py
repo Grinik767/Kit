@@ -24,8 +24,11 @@ class DriveManager:
             file.write(compressed_data)
 
     def save_tree(self, tree_hash: str, prev_tree_hash: str):
+        prev_tree_path = path.join(self.repo_path, 'Objects', prev_tree_hash[:2], prev_tree_hash[2:])
         hash_folder = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
-        os.makedirs(hash_folder, exist_ok=True)
+        os.makedirs(hash_folder)
+        if path.exists(prev_tree_path):
+            copy_tree(prev_tree_path, hash_folder)
         with open(self.index_path, 'r') as f:
             for line in f:
                 filepath, file_hash = line.split()
