@@ -91,19 +91,19 @@ class VersionControl:
         self.drive.write(tag_path, f"{self.username}\n{datetime.now()}\n{description}\n{self.current_id}")
 
     def checkout(self, name: str) -> None:
-        tag_path = path.join('.kit', 'Refs', 'tags', name)
-        branch_path = path.join('.kit', 'Refs', 'heads', name)
+        tag_path = path.join('Refs', 'tags', name)
+        branch_path = path.join('Refs', 'heads', name)
         commit_path = path.join('.kit', "Objects", name[:2], name[2:])
         index_path = path.join('.kit', 'INDEX')
 
         if self.drive.is_exist(index_path):
             raise errors.UncommitedChangesError()
 
-        if self.drive.is_exist(tag_path):
-            commit_id = self.drive.read(path.join('.kit', 'Refs', 'tags', name))
+        if self.drive.is_exist(path.join('.kit', tag_path)):
+            commit_id = self.drive.read(path.join('.kit', tag_path))
             self.drive.write(path.join('.kit', 'HEAD'), 'None')
-        elif self.drive.is_exist(branch_path):
-            commit_id = self.drive.read(branch_path)
+        elif self.drive.is_exist(path.join('.kit', branch_path)):
+            commit_id = self.drive.read(path.join('.kit', branch_path))
             self.drive.write(path.join('.kit', 'HEAD'), branch_path)
         elif self.drive.is_exist(commit_path):
             commit_id = name

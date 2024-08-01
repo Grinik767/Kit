@@ -43,7 +43,7 @@ class DriveManager:
         folder = file_hash[:2]
         name = file_hash[2:]
 
-        with open(os.path.join(self.repo_path, 'Objects', folder, name), 'rb') as file:
+        with open(os.path.abspath(os.path.join(self.repo_path, 'Objects', folder, name)), 'rb') as file:
             compressed_data = file.read()
 
         return lzma.decompress(compressed_data)
@@ -166,8 +166,8 @@ class DriveManager:
         with open(os.path.join(self.repo_path, 'HEAD'), 'r') as head:
             branch_path = head.readline()
 
-        with open(os.path.join(self.repo_path, branch_path), 'r') as branch_path:
-            return branch_path.readline().rstrip()
+        with open(os.path.join(self.repo_path, branch_path), 'r') as branch:
+            return branch.readline().rstrip()
 
     def get_commit_tree_hash(self, commit_id: str):
         commit_path = path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:])
