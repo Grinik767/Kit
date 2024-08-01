@@ -1,7 +1,5 @@
-import errors
-from os import path
 from drive_manager import DriveManager
-from utils import Utils
+from utils import *
 from random import randint
 from datetime import datetime
 
@@ -19,7 +17,7 @@ class VersionControl:
 
     def init(self) -> None:
         if self.drive.is_exist('.kit'):
-            raise errors.AlreadyExistError.AlreadyExistError(f'This directory already have repository')
+            raise errors.AlreadyExistError(f'This directory already have repository')
 
         self.head = path.join('Refs', 'heads', 'main')
         self.seed = randint(10 ** 7, 10 ** 8 - 1)
@@ -33,6 +31,7 @@ class VersionControl:
 
     def add(self, local_path: str) -> None:
         self.drive.write_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id), self.seed)
+        self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
     def remove(self, local_path: str) -> None:
         index_path = path.join('.kit', 'INDEX')
@@ -50,12 +49,12 @@ class VersionControl:
 
     def commit(self, description: str) -> None:
         if self.head is None:
-            raise errors.NotOnBranchError.NotOnBranchError
+            raise errors.NotOnBranchError()
 
         index_path = path.join('.kit', 'INDEX')
 
         if self.current_id is not None and not self.drive.is_exist(index_path):
-            raise errors.NothingToCommitError.NothingToCommitError
+            raise errors.NothingToCommitError()
 
         commit_time = datetime.now()
         commit_id = Utils.get_string_hash(''.join((self.username, description, commit_time.isoformat())),
@@ -79,7 +78,7 @@ class VersionControl:
         branch_path = path.join('.kit', 'Refs', 'heads', name)
 
         if self.drive.is_exist(branch_path):
-            raise errors.AlreadyExistError.AlreadyExistError(f'Branch named {name} already exist')
+            raise errors.AlreadyExistError(f'Branch named {name} already exist')
 
         self.drive.write(branch_path, self.current_id)
 
@@ -87,7 +86,7 @@ class VersionControl:
         tag_path = path.join('.kit', 'Refs', 'tags', name)
 
         if self.drive.is_exist(tag_path):
-            raise errors.AlreadyExistError.AlreadyExistError(f'Tag named {name} already exist')
+            raise errors.AlreadyExistError(f'Tag named {name} already exist')
 
         self.drive.write(tag_path, f"{self.username}\n{datetime.now()}\n{description}\n{self.current_id}")
 
@@ -98,7 +97,7 @@ class VersionControl:
         index_path = path.join('.kit', 'INDEX')
 
         if self.drive.is_exist(index_path):
-            raise errors.UncommitedChangesError.UncommitedChangesError
+            raise errors.UncommitedChangesError()
 
         if self.drive.is_exist(tag_path):
             commit_id = self.drive.read(path.join('.kit', 'Refs', 'tags', name))
@@ -109,7 +108,7 @@ class VersionControl:
         elif self.drive.is_exist(commit_path):
             commit_id = name
         else:
-            raise errors.CheckoutError.CheckoutError(f"Commit/branch/tag with {name} does not exist")
+            raise errors.CheckoutError(f"Commit/branch/tag with {name} does not exist")
 
         self.head = self.drive.get_head()
         folder = commit_id[:2]

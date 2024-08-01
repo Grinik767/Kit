@@ -162,6 +162,11 @@ class DriveManager:
     def is_exist(self, local_path):
         return os.path.exists(os.path.join(self.workspace_path, local_path))
 
+    def delete_if_empty_file(self, local_path):
+        full_path = path.join(self.workspace_path, local_path)
+        if path.getsize(full_path) == 0:
+            remove(full_path)
+
     def remove(self, local_path):
         os.remove(os.path.join(self.workspace_path, local_path))
 
