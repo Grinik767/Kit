@@ -23,7 +23,7 @@ class DriveManager:
         with open(os.path.join(self.repo_path, 'Objects', folder, name), 'wb') as file:
             file.write(compressed_data)
 
-    def save_tree(self, tree_hash: str):
+    def save_tree(self, tree_hash: str, prev_tree_hash: str):
         hash_folder = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
         os.makedirs(hash_folder, exist_ok=True)
         with open(self.index_path, 'r') as f:
@@ -134,8 +134,18 @@ class DriveManager:
         with open(os.path.join(self.repo_path, branch_path), 'r') as branch_path:
             return branch_path.readline().rstrip()
 
+    def get_commit_tree_hash(self, commit_id: str) -> str:
+        commit_path = path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:])
+        assert path.exists(commit_path)
+        with open(commit_path, 'r') as f:
+            return f.readlines()[-2][:-1]
+
     def is_exist(self, local_path):
         return os.path.exists(os.path.join(self.workspace_path, local_path))
 
     def remove(self, local_path):
         os.remove(os.path.join(self.workspace_path, local_path))
+
+
+if __name__ == '__main__':
+    pass

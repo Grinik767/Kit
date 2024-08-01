@@ -65,7 +65,7 @@ class VersionControl:
         self.drive.write_commit_data(commit_id, self.username, commit_time, description, tree_hash, self.current_id)
 
         if self.current_id is not None:
-            self.drive.save_tree(tree_hash)
+            self.drive.save_tree(tree_hash, self.drive.get_commit_tree_hash(self.current_id))
 
         self.drive.save_files_from_index()
         self.current_id = commit_id
@@ -73,6 +73,7 @@ class VersionControl:
 
         if self.drive.is_exist(index_path):
             self.drive.remove(index_path)
+            self.drive.index_hashes.clear()
 
     def branch(self, name: str) -> None:
         branch_path = path.join('.kit', 'Refs', 'heads', name)
