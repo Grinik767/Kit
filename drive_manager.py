@@ -44,7 +44,7 @@ class DriveManager:
 
         return lzma.decompress(compressed_data)
 
-    def save_index_files(self):
+    def save_files_from_index(self):
         index_path = os.path.join(self.repo_path, 'INDEX')
         with open(index_path, 'r') as index:
             for line in index.readlines():

@@ -44,17 +44,16 @@ class VersionControl:
             raise NothingToCommitError
 
         commit_id = xxh3_128(self.username + description + datetime.now().isoformat(), seed=self.seed).hexdigest()
-        tree_hash = Utils.get_tree_hash_with_index_update(self.repo_path, self.seed)
+        tree_hash = Utils.get_tree_hash(self.repo_path, self.seed)
 
         self.drive.write_commit_data(commit_id, self.username, datetime.now(), description, tree_hash.hexdigest(), self.current_id)
 
-        self.current_id = commit_id
-        self.drive.write(path.join('.kit', self.head), self.current_id)
-
-        self.drive.save_index_files()
-
         if self.current_id is not None:
             self.drive.save_tree(tree_hash.hexdigest())
+
+        self.drive.save_files_from_index()
+        self.current_id = commit_id
+        self.drive.write(path.join('.kit', self.head), self.current_id)
 
         if self.drive.is_exist(index_path):
             self.drive.remove(index_path)
