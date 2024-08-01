@@ -7,6 +7,8 @@ class DriveManager:
     def __init__(self, workspace_path):
         self.workspace_path = workspace_path
         self.repo_path = os.path.join(self.workspace_path, '.kit')
+        self.index_path = os.path.join(self.repo_path, 'INDEX')
+        self.index_hashes = self.get_index_hashes()
 
     def save_file(self, local_path, file_hash):
         folder = file_hash[:2]
@@ -22,10 +24,9 @@ class DriveManager:
             file.write(compressed_data)
 
     def save_tree(self, tree_hash: str):
-        index_path = path.join(self.repo_path, "INDEX")
         hash_folder = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
         os.makedirs(hash_folder, exist_ok=True)
-        with open(index_path, 'r') as f:
+        with open(self.index_path, 'r') as f:
             for line in f:
                 filepath, file_hash = line.split()
                 folder_name = path.split(filepath)[:-1][0]
@@ -45,11 +46,10 @@ class DriveManager:
         return lzma.decompress(compressed_data)
 
     def save_files_from_index(self):
-        index_path = os.path.join(self.repo_path, 'INDEX')
-        with open(index_path, 'r') as index:
+        with open(self.index_path, 'r') as index:
             for line in index.readlines():
-                path, hash = line.rstrip().split(' ')
-                self.save_file(path, hash)
+                file_path, cur_hash = line.rstrip().split(' ')
+                self.save_file(file_path, cur_hash)
 
     def write(self, local_path, data):
         with open(os.path.join(self.workspace_path, local_path), 'w') as file:
@@ -65,19 +65,32 @@ class DriveManager:
             commit.write(f"{username}\n{datetime}\n{description}\n{tree}\n{parent}")
 
     def write_index_data(self, local_path: str, seed: int):
-        index_path = os.path.join(self.repo_path, 'INDEX')
         file_path = os.path.join(self.workspace_path, local_path)
-
-        with open(index_path, 'a') as index:
+        with open(self.index_path, 'a') as index:
             if not path.isdir(file_path):
-                index.write(f"{local_path} {Utils.get_file_hash(file_path, xxh3_128(seed=seed)).hexdigest()}\n")
+                filehash = Utils.get_file_hash(file_path, self.workspace_path, seed).hexdigest()
+                if filehash not in self.index_hashes:
+                    rel_path = path.relpath(file_path, start=self.workspace_path)
+                    self.index_hashes[filehash] = rel_path
+                    index.write(f"{rel_path} {filehash}\n")
                 return
 
             for root, _, files in os.walk(file_path):
                 for file in files:
                     file_full_path = path.join(root, file)
+
                     relative_path = path.relpath(file_full_path, start=self.workspace_path)
                     self.write_index_data(relative_path, seed)
+
+    def get_index_hashes(self) -> dict[str: str]:
+        result = {}
+        if not path.exists(self.index_path):
+            return result
+        with open(self.index_path, 'r') as f:
+            for line in f:
+                filepath, filehash = line.split()
+                result[filehash] = filepath
+        return result
 
     def initialize_directories(self):
         os.makedirs(self.repo_path, exist_ok=True)
