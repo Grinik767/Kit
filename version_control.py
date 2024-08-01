@@ -4,7 +4,6 @@ from errors.NothingToCommitError import NothingToCommitError
 from errors.RepositoryAlreadyExistError import RepositoryAlreadyExistError
 from errors.BranchAlreadyExistError import BranchAlreadyExitsError
 from utils import Utils
-from xxhash import xxh3_128
 from random import randint
 from datetime import datetime
 
@@ -43,14 +42,15 @@ class VersionControl:
         if self.current_id is not None and not self.drive.is_exist(index_path):
             raise NothingToCommitError
 
-        commit_id = xxh3_128(self.username + description + datetime.now().isoformat(), seed=self.seed).hexdigest()
-        tree_hash = Utils.get_tree_hash(self.repo_path, self.seed)
+        commit_time = datetime.now()
+        commit_id = Utils.get_string_hash(''.join((self.username, description, commit_time.isoformat())),
+                                          seed=self.seed).hexdigest()
+        tree_hash = Utils.get_tree_hash(self.repo_path, self.seed).hexdigest()
 
-        self.drive.write_commit_data(commit_id, self.username, datetime.now(), description, tree_hash.hexdigest(),
-                                     self.current_id)
+        self.drive.write_commit_data(commit_id, self.username, commit_time, description, tree_hash, self.current_id)
 
         if self.current_id is not None:
-            self.drive.save_tree(tree_hash.hexdigest())
+            self.drive.save_tree(tree_hash)
 
         self.drive.save_files_from_index()
         self.current_id = commit_id
