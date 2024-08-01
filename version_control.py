@@ -111,11 +111,9 @@ class VersionControl:
             raise errors.CheckoutError(f"Commit/branch/tag with {name} does not exist")
 
         self.head = self.drive.get_head()
-        folder = commit_id[:2]
-        filename = commit_id[2:]
-        tree_id = self.drive.read(path.join('.kit', 'Objects', folder, filename)).split()[3]
-
-        # TODO Вызов отгрузки
+        self.drive.delete_tree_files(self.drive.get_commit_tree_hash(self.current_id))
+        self.drive.load_tree_files(self.drive.get_commit_tree_hash(commit_id))
+        self.current_id = commit_id
 
     def log(self) -> None:
         pass  # TODO

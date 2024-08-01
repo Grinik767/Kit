@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from os import path, walk, remove, rmdir
+from os import path, walk, remove, rmdir, makedirs
 from xxhash import xxh3_128
 import errors
 from distutils.dir_util import copy_tree

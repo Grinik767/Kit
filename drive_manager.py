@@ -90,15 +90,32 @@ class DriveManager:
                     relative_path = path.relpath(file_full_path, start=self.workspace_path)
                     self.write_index_data(relative_path, prev_tree_hash, seed)
 
-    def delete_tree_hash_files(self, tree_hash: str):
+    def load_tree_files(self, tree_hash: str):
+        if not tree_hash:
+            return
+        tree_path = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
+        for root, dirs, files in walk(tree_path):
+            rel_path = path.abspath(path.relpath(root, start=tree_path))
+            makedirs(rel_path, exist_ok=True)
+            for file in files:
+                with open(path.join(root, file), 'r') as f:
+                    filehash = f.read().strip()
+                with open(path.join(rel_path, file), 'wb') as f:
+                    f.write(self.load_file(filehash))
+
+    def delete_tree_files(self, tree_hash: str):
         if not tree_hash:
             return
         tree_path = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
         for root, dirs, files in walk(tree_path, topdown=False):
             for file in files:
-                remove(path.abspath(path.relpath(path.join(root, file), start=tree_path)))
+                full_path = path.abspath(path.relpath(path.join(root, file), start=tree_path))
+                if path.exists(full_path):
+                    remove(full_path)
             for directory in dirs:
-                rmdir(path.abspath(path.relpath(path.join(root, directory), start=tree_path)))
+                full_path = path.abspath(path.relpath(path.join(root, directory), start=tree_path))
+                if path.exists(full_path):
+                    rmdir(full_path)
 
     def get_index_hashes(self) -> dict[str: str]:
         result = {}
