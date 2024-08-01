@@ -19,7 +19,7 @@ class VersionControl:
         if self.drive.is_exist('.kit'):
             raise errors.AlreadyExistError(f'This directory already have repository')
 
-        self.head = path.join('Refs', 'heads', 'main')
+        self.head = path.join('refs', 'heads', 'main')
         self.seed = randint(10 ** 7, 10 ** 8 - 1)
 
         self.drive.initialize_directories()
@@ -75,7 +75,7 @@ class VersionControl:
             self.drive.index_hashes.clear()
 
     def branch(self, name: str) -> None:
-        branch_path = path.join('.kit', 'Refs', 'heads', name)
+        branch_path = path.join('.kit', 'refs', 'heads', name)
 
         if self.drive.is_exist(branch_path):
             raise errors.AlreadyExistError(f'Branch named {name} already exist')
@@ -83,7 +83,7 @@ class VersionControl:
         self.drive.write(branch_path, self.current_id)
 
     def tag(self, name: str, description: str = None) -> None:
-        tag_path = path.join('.kit', 'Refs', 'tags', name)
+        tag_path = path.join('.kit', 'refs', 'tags', name)
 
         if self.drive.is_exist(tag_path):
             raise errors.AlreadyExistError(f'Tag named {name} already exist')
@@ -91,9 +91,9 @@ class VersionControl:
         self.drive.write(tag_path, f"{self.username}\n{datetime.now()}\n{description}\n{self.current_id}")
 
     def checkout(self, name: str) -> None:
-        tag_path = path.join('Refs', 'tags', name)
-        branch_path = path.join('Refs', 'heads', name)
-        commit_path = path.join('.kit', "Objects", name[:2], name[2:])
+        tag_path = path.join('refs', 'tags', name)
+        branch_path = path.join('refs', 'heads', name)
+        commit_path = path.join('.kit', "objects", name[:2], name[2:])
         index_path = path.join('.kit', 'INDEX')
 
         if self.drive.is_exist(index_path):

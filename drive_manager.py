@@ -18,14 +18,14 @@ class DriveManager:
             data = bytes(file.read())
             compressed_data = lzma.compress(data)
 
-        os.makedirs(os.path.join(self.repo_path, 'Objects', folder), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, 'objects', folder), exist_ok=True)
 
-        with open(os.path.join(self.repo_path, 'Objects', folder, name), 'wb') as file:
+        with open(os.path.join(self.repo_path, 'objects', folder, name), 'wb') as file:
             file.write(compressed_data)
 
     def save_tree(self, tree_hash: str, prev_tree_hash: str):
-        prev_tree_path = path.join(self.repo_path, 'Objects', prev_tree_hash[:2], prev_tree_hash[2:])
-        hash_folder = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
+        prev_tree_path = path.join(self.repo_path, 'objects', prev_tree_hash[:2], prev_tree_hash[2:])
+        hash_folder = path.join(self.repo_path, 'objects', tree_hash[:2], tree_hash[2:])
         os.makedirs(hash_folder)
         if path.exists(prev_tree_path):
             copy_tree(prev_tree_path, hash_folder)
@@ -43,7 +43,7 @@ class DriveManager:
         folder = file_hash[:2]
         name = file_hash[2:]
 
-        with open(os.path.abspath(os.path.join(self.repo_path, 'Objects', folder, name)), 'rb') as file:
+        with open(os.path.abspath(os.path.join(self.repo_path, 'objects', folder, name)), 'rb') as file:
             compressed_data = file.read()
 
         return lzma.decompress(compressed_data)
@@ -63,8 +63,8 @@ class DriveManager:
             return file.read()
 
     def write_commit_data(self, commit_id, username, datetime, description, tree, parent):
-        os.makedirs(os.path.join(self.repo_path, 'Objects', commit_id[:2]), exist_ok=True)
-        with open(os.path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:]), 'w') as commit:
+        os.makedirs(os.path.join(self.repo_path, 'objects', commit_id[:2]), exist_ok=True)
+        with open(os.path.join(self.repo_path, 'objects', commit_id[:2], commit_id[2:]), 'w') as commit:
             commit.write(f"{username}\n{datetime}\n{description}\n{tree}\n{parent}")
 
     def write_index_data(self, local_path: str, prev_tree_hash: str, seed: int):
@@ -73,7 +73,7 @@ class DriveManager:
             if not path.isdir(file_path):
                 rel_path = path.relpath(file_path, start=self.workspace_path)
                 filehash = Utils.get_file_hash(file_path, self.workspace_path, seed).hexdigest()
-                prev_tree_path = path.join(self.repo_path, 'Objects', prev_tree_hash[:2], prev_tree_hash[2:])
+                prev_tree_path = path.join(self.repo_path, 'objects', prev_tree_hash[:2], prev_tree_hash[2:])
                 prev_filehash = None
                 if path.exists(path.join(prev_tree_path, rel_path)):
                     with open(path.join(prev_tree_path, rel_path), 'r') as f:
@@ -93,7 +93,7 @@ class DriveManager:
     def load_tree_files(self, tree_hash: str):
         if not tree_hash:
             return
-        tree_path = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
+        tree_path = path.join(self.repo_path, 'objects', tree_hash[:2], tree_hash[2:])
         for root, dirs, files in walk(tree_path):
             rel_path = path.abspath(path.relpath(root, start=tree_path))
             makedirs(rel_path, exist_ok=True)
@@ -106,7 +106,7 @@ class DriveManager:
     def delete_tree_files(self, tree_hash: str):
         if not tree_hash:
             return
-        tree_path = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
+        tree_path = path.join(self.repo_path, 'objects', tree_hash[:2], tree_hash[2:])
         for root, dirs, files in walk(tree_path, topdown=False):
             for file in files:
                 full_path = path.abspath(path.relpath(path.join(root, file), start=tree_path))
@@ -129,10 +129,10 @@ class DriveManager:
 
     def initialize_directories(self):
         os.makedirs(self.repo_path, exist_ok=True)
-        os.makedirs(os.path.join(self.repo_path, 'Objects'), exist_ok=True)
-        os.makedirs(os.path.join(self.repo_path, 'Refs'), exist_ok=True)
-        os.makedirs(os.path.join(self.repo_path, 'Refs', 'heads'), exist_ok=True)
-        os.makedirs(os.path.join(self.repo_path, 'Refs', 'tags'), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, 'objects'), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, 'refs'), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, 'refs', 'heads'), exist_ok=True)
+        os.makedirs(os.path.join(self.repo_path, 'refs', 'tags'), exist_ok=True)
 
         open(os.path.join(self.repo_path, 'INDEX'), 'w').close()
 
@@ -170,7 +170,7 @@ class DriveManager:
             return branch.readline().rstrip()
 
     def get_commit_tree_hash(self, commit_id: str):
-        commit_path = path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:])
+        commit_path = path.join(self.repo_path, 'objects', commit_id[:2], commit_id[2:])
         if not path.exists(commit_path):
             return
         with open(commit_path, 'r') as f:
