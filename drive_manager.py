@@ -90,6 +90,16 @@ class DriveManager:
                     relative_path = path.relpath(file_full_path, start=self.workspace_path)
                     self.write_index_data(relative_path, prev_tree_hash, seed)
 
+    def delete_tree_hash_files(self, tree_hash: str):
+        if not tree_hash:
+            return
+        tree_path = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
+        for root, dirs, files in walk(tree_path, topdown=False):
+            for file in files:
+                remove(path.abspath(path.relpath(path.join(root, file), start=tree_path)))
+            for directory in dirs:
+                rmdir(path.abspath(path.relpath(path.join(root, directory), start=tree_path)))
+
     def get_index_hashes(self) -> dict[str: str]:
         result = {}
         if not path.exists(self.index_path):
@@ -134,7 +144,7 @@ class DriveManager:
 
     def get_last_commit_id(self, head):
         if head is None:
-            return None
+            return
 
         with open(os.path.join(self.repo_path, 'HEAD'), 'r') as head:
             branch_path = head.readline()
@@ -145,7 +155,7 @@ class DriveManager:
     def get_commit_tree_hash(self, commit_id: str):
         commit_path = path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:])
         if not path.exists(commit_path):
-            return None
+            return
         with open(commit_path, 'r') as f:
             return f.readlines()[-2][:-1]
 
