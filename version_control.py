@@ -32,7 +32,7 @@ class VersionControl:
         self.drive.write(path.join('.kit', self.head), self.current_id)
 
     def add(self, local_path: str) -> None:
-        self.drive.write_index_data(local_path, self.seed)
+        self.drive.write_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id), self.seed)
 
     def remove(self, local_path: str) -> None:
         index_path = path.join('.kit', 'INDEX')
@@ -116,7 +116,11 @@ class VersionControl:
         filename = commit_id[2:]
         tree_id = self.drive.read(path.join('.kit', 'Objects', folder, filename)).split()[3]
 
-        #TODO Вызов отгрузки
+        # TODO Вызов отгрузки
 
     def log(self) -> None:
-        pass #TODO
+        pass  # TODO
+
+
+if __name__ == '__main__':
+    pass

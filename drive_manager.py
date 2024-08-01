@@ -64,13 +64,18 @@ class DriveManager:
         with open(os.path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:]), 'w') as commit:
             commit.write(f"{username}\n{datetime}\n{description}\n{tree}\n{parent}")
 
-    def write_index_data(self, local_path: str, seed: int):
+    def write_index_data(self, local_path: str, prev_tree_hash: str, seed: int):
         file_path = os.path.join(self.workspace_path, local_path)
         with open(self.index_path, 'a') as index:
             if not path.isdir(file_path):
+                rel_path = path.relpath(file_path, start=self.workspace_path)
                 filehash = Utils.get_file_hash(file_path, self.workspace_path, seed).hexdigest()
-                if filehash not in self.index_hashes:
-                    rel_path = path.relpath(file_path, start=self.workspace_path)
+                prev_tree_path = path.join(self.repo_path, 'Objects', prev_tree_hash[:2], prev_tree_hash[2:])
+                prev_filehash = None
+                if path.exists(path.join(prev_tree_path, rel_path)):
+                    with open(path.join(prev_tree_path, rel_path), 'r') as f:
+                        prev_filehash = f.read().strip()
+                if filehash not in self.index_hashes and (prev_filehash is None or prev_filehash != filehash):
                     self.index_hashes[filehash] = rel_path
                     index.write(f"{rel_path} {filehash}\n")
                 return
@@ -80,7 +85,7 @@ class DriveManager:
                     file_full_path = path.join(root, file)
 
                     relative_path = path.relpath(file_full_path, start=self.workspace_path)
-                    self.write_index_data(relative_path, seed)
+                    self.write_index_data(relative_path, prev_tree_hash, seed)
 
     def get_index_hashes(self) -> dict[str: str]:
         result = {}
@@ -134,9 +139,10 @@ class DriveManager:
         with open(os.path.join(self.repo_path, branch_path), 'r') as branch_path:
             return branch_path.readline().rstrip()
 
-    def get_commit_tree_hash(self, commit_id: str) -> str:
+    def get_commit_tree_hash(self, commit_id: str):
         commit_path = path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:])
-        assert path.exists(commit_path)
+        if not path.exists(commit_path):
+            return None
         with open(commit_path, 'r') as f:
             return f.readlines()[-2][:-1]
 
