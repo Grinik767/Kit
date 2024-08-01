@@ -93,20 +93,22 @@ class VersionControl:
     def checkout(self, name: str) -> None:
         tag_path = path.join('.kit', 'Refs', 'tags', name)
         branch_path = path.join('.kit', 'Refs', 'heads', name)
+        commit_path = path.join('.kit', "Objects", name[:2], name[2:])
         index_path = path.join('.kit', 'INDEX')
+
+        if self.drive.is_exist(index_path):
+            raise errors.UncommitedChangesError.UncommitedChangesError
 
         if self.drive.is_exist(tag_path):
             commit_id = self.drive.read(path.join('.kit', 'Refs', 'tags', name))
             self.drive.write(path.join('.kit', 'HEAD'), 'None')
-
         elif self.drive.is_exist(branch_path):
             commit_id = self.drive.read(branch_path)
             self.drive.write(path.join('.kit', 'HEAD'), branch_path)
-        else:
+        elif self.drive.is_exist(commit_path):
             commit_id = name
-
-        if self.drive.is_exist(index_path):
-            raise errors.UncommitedChangesError.UncommitedChangesError
+        else:
+            raise errors.CheckoutError.CheckoutError(f"Commit/branch/tag with {name} does not exist")
 
         self.head = self.drive.get_head()
         folder = commit_id[:2]
