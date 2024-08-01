@@ -27,19 +27,14 @@ class Utils:
         return xxh3_128(string, seed=seed)
 
     @staticmethod
-    def get_tree_hash_with_index_update(repo_path: str, seed: int) -> xxh3_128:
-        workspace_path = path.split(repo_path)[:-1][0]
-        index_path = path.join(repo_path, "INDEX")
+    def get_tree_hash(workspace_path: str, seed: int) -> xxh3_128:
+        index_path = path.join(workspace_path, "INDEX")
         assert path.isfile(index_path) and path.basename(index_path) == "INDEX"
         cur_hash = xxh3_128('kit', seed=seed)
         with open(index_path, 'r') as f:
-            data = f.readlines()
-        with open(index_path, 'w') as f:
-            for line in data:
-                local_path = line.split()[0]
-                filepath = path.join(workspace_path, local_path)
-                f.write(f"{local_path} {Utils.get_file_hash(filepath, xxh3_128(seed=seed)).hexdigest()}\n")
-                cur_hash = Utils.get_file_hash(filepath, cur_hash)
+            for line in f:
+                local_path, file_hash = line.split()
+                cur_hash.update(file_hash)
         return cur_hash
 
 

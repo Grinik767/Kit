@@ -61,15 +61,17 @@ class VersionControl:
         if self.current_id is not None and not os.path.exists(index_path):
             raise NothingToCommitError
 
-        commit_id = xxh3_128(self.username + description + datetime.now().isoformat(), seed=self.seed).hexdigest()
+        commit_time = datetime.now()
+        commit_id = Utils.get_string_hash(''.join((self.username, description, commit_time.isoformat())),
+                                          self.seed).hexdigest()
         os.makedirs(os.path.join(self.repo_path, 'Objects', commit_id[:2]), exist_ok=True)
-        tree_hash = Utils.get_tree_hash_with_index_update(self.repo_path, self.seed)
+        tree_hash = Utils.get_tree_hash(self.repo_path, self.seed).hexdigest()
 
         with open(os.path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:]), 'w') as commit:
             commit.write(f"{self.username}\n")
-            commit.write(f"{datetime.now()}\n")
+            commit.write(f"{commit_time}\n")
             commit.write(f"{description}\n")
-            commit.write(f"{tree_hash.hexdigest()}\n")
+            commit.write(f"{tree_hash}\n")
             commit.write(f"{self.current_id}")
 
             self.current_id = commit_id
@@ -77,11 +79,11 @@ class VersionControl:
 
         with open(index_path, 'r') as index:
             for line in index.readlines():
-                path, hash = line.rstrip().split(' ')
+                path, hash = line.rstrip().split()
                 self.drive.save_file(path, hash)
 
         if self.current_id is not None:
-            self.drive.save_tree(tree_hash.hexdigest())
+            self.drive.save_tree(tree_hash)
 
         if os.path.exists(index_path):
             os.remove(index_path)
@@ -96,10 +98,10 @@ class VersionControl:
             branch.write(self.current_id)
 
     def checkout(self):
-        pass #TODO
+        pass  # TODO
 
     def log(self):
-        pass #TODO
+        pass  # TODO
 
     def __update_branch_head(self):
         with open(os.path.join(self.repo_path, self.head), 'w') as branch:
