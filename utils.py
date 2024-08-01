@@ -29,7 +29,7 @@ class Utils:
     @staticmethod
     def get_tree_hash_with_index_update(repo_path: str, seed: int) -> xxh3_128:
         workspace_path = path.split(repo_path)[:-1][0]
-        index_path = path.join(workspace_path, "INDEX")
+        index_path = path.join(repo_path, "INDEX")
         assert path.isfile(index_path) and path.basename(index_path) == "INDEX"
         cur_hash = xxh3_128('kit', seed=seed)
         with open(index_path, 'r') as f:

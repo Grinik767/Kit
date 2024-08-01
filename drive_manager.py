@@ -8,10 +8,9 @@ class DriveManager:
         self.path = workspace_path
         self.repo_path = os.path.join(self.path, '.kit')
 
-    def save_file(self, file_hash):
+    def save_file(self, local_path, file_hash):
         folder = file_hash[:2]
         name = file_hash[2:]
-        local_path = self.__get_original_file_location(file_hash)
 
         with open(os.path.join(self.path, local_path), 'rb') as file:
             data = bytes(file.read())
@@ -23,9 +22,9 @@ class DriveManager:
             file.write(compressed_data)
 
     def save_tree(self, tree_hash: str):
-        index_path = path.join(self.path, "INDEX")
+        index_path = path.join(self.repo_path, "INDEX")
         hash_folder = path.join(self.repo_path, 'Objects', tree_hash[:2], tree_hash[2:])
-        os.makedirs(hash_folder)
+        os.makedirs(hash_folder, exist_ok=True)
         with open(index_path, 'r') as f:
             for line in f:
                 filepath, file_hash = line.split()
@@ -36,9 +35,6 @@ class DriveManager:
                 with open(path.join(folder_path, path.basename(filepath)), 'w') as f:
                     f.write(file_hash)
 
-    def save_commit(self, hash):
-        pass  # TODO
-
     def load_file(self, file_hash):
         folder = file_hash[:2]
         name = file_hash[2:]
@@ -47,25 +43,6 @@ class DriveManager:
             compressed_data = file.read()
 
         return lzma.decompress(compressed_data)
-
-    def load_commit(self, hash):
-        tree_hash = self.__get_tree_hash(hash)
-        folder = tree_hash[:2]
-        name = tree_hash[2:]
-
-        pass  # TODO
-
-    def __get_original_file_location(self, hash):
-        with open(os.path.join(self.repo_path, 'INDEX'), 'r') as index:
-            for file in index.readlines():
-                file_path, file_hash = file.strip().split(', hash: ')
-                file_path = file_path.split(': ')[1]
-                file_hash = file_hash.strip()
-
-                if file_hash == hash:
-                    return file_path
-
-        return None
 
     def __get_tree_hash(self, commit_hash):
         folder = commit_hash[:2]

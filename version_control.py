@@ -10,30 +10,35 @@ from datetime import datetime
 
 
 class VersionControl:
-    def __init__(self, path, username):
-        self.path = path
-        self.repo_path = os.path.abspath(os.path.join(path, ".kit"))
+    def __init__(self, workspace_path, username):
+        self.path = workspace_path
+        self.repo_path = os.path.abspath(os.path.join(workspace_path, ".kit"))
         self.username = username
-        self.drive = DriveManager(path)
-        self.head = VersionControl.__get_head(self.repo_path)
-        self.seed = VersionControl.__get_seed(self.repo_path)
+        self.drive = DriveManager(workspace_path)
+        self.head = self.__get_head()
+        self.seed = self.__get_seed()
+        self.current_id = self.__get_current_id()
 
     def init(self):
         if os.path.exists(self.repo_path):
             raise RepositoryAlreadyExistError
 
-        self.head = None
+        self.head = os.path.join('Refs', 'heads', 'main')
         self.seed = randint(10000000, 99999999)
         self.__create_directories()
+        open(os.path.join(self.repo_path, 'INDEX'), 'w').close()
         self.commit("initial commit")
 
+        with open(os.path.join(self.repo_path, 'HEAD'), 'w') as head:
+            head.write(self.head)
+
         with open(os.path.join(self.repo_path, 'SEED'), 'w') as seed:
-            seed.write(f'{self.seed}\n')
+            seed.write(f'{self.seed}')
 
         with open(os.path.join(self.repo_path, 'Refs', 'heads', 'main'), 'w') as main:
-            main.write(f'{self.head}\n')
+            main.write(f'{self.current_id}')
 
-        self.__update_head()
+        self.__update_branch_head()
 
     def add(self, local_path: str):
         index_path = os.path.join(self.repo_path, 'INDEX')
@@ -51,24 +56,35 @@ class VersionControl:
                     self.add(relative_path)
 
     def commit(self, description: str):
-        tree_hash = Utils.get_tree_hash(self.repo_path)
+        index_path = os.path.join(self.path, 'INDEX')
 
-        if self.head is not None and tree_hash == self.__get_head_tree_hash():
+        if self.current_id is not None and not os.path.exists(index_path):
             raise NothingToCommitError
 
         commit_id = xxh3_128(self.username + description + datetime.now().isoformat(), seed=self.seed).hexdigest()
         os.makedirs(os.path.join(self.repo_path, 'Objects', commit_id[:2]), exist_ok=True)
+        tree_hash = Utils.get_tree_hash_with_index_update(self.repo_path, self.seed)
 
         with open(os.path.join(self.repo_path, 'Objects', commit_id[:2], commit_id[2:]), 'w') as commit:
             commit.write(f"{self.username}\n")
             commit.write(f"{datetime.now()}\n")
             commit.write(f"{description}\n")
-            commit.write(f"{tree_hash}\n")
-            commit.write(f"{self.head}\n")
+            commit.write(f"{tree_hash.hexdigest()}\n")
+            commit.write(f"{self.current_id}")
 
-            self.head = commit_id
+            self.current_id = commit_id
+            self.__update_branch_head()
 
-        self.__update_head()
+        with open(index_path, 'r') as index:
+            for line in index.readlines():
+                path, hash = line.rstrip().split(' ')
+                self.drive.save_file(path, hash)
+
+        if self.current_id is not None:
+            self.drive.save_tree(tree_hash.hexdigest())
+
+        if os.path.exists(index_path):
+            os.remove(index_path)
 
     def branch(self, name):
         branch_path = os.path.join(self.repo_path, 'Refs', 'heads', name)
@@ -77,7 +93,7 @@ class VersionControl:
             raise BranchAlreadyExitsError
 
         with open(branch_path, 'w') as branch:
-            branch.write(self.head)
+            branch.write(self.current_id)
 
     def checkout(self):
         pass #TODO
@@ -85,9 +101,9 @@ class VersionControl:
     def log(self):
         pass #TODO
 
-    def __update_head(self):
-        with open(os.path.join(self.repo_path, 'HEAD'), 'w') as head:
-            head.write(f'{self.head}\n')
+    def __update_branch_head(self):
+        with open(os.path.join(self.repo_path, self.head), 'w') as branch:
+            branch.write(f'{self.current_id}')
 
     def __create_directories(self):
         os.makedirs(self.repo_path, exist_ok=True)
@@ -95,37 +111,37 @@ class VersionControl:
         os.makedirs(os.path.join(self.repo_path, 'Refs'), exist_ok=True)
         os.makedirs(os.path.join(self.repo_path, 'Refs', 'heads'), exist_ok=True)
 
-    def __get_head_tree_hash(self):
-        folder = self.head[:2]
-        name = self.head[2:]
+    def __get_current_tree_hash(self):
+        folder = self.current_id[:2]
+        name = self.current_id[2:]
 
-        with open(os.path.join(self.repo_path, 'Objects', folder, name), 'r') as head:
-            return head[3]
+        with open(os.path.join(self.repo_path, 'Objects', folder, name), 'r') as commit:
+            return commit.readlines()[3].rstrip()
 
-    @staticmethod
-    def __get_head(path):
-        head_path = os.path.join(path, 'HEAD')
+    def __get_head(self):
+        head_path = os.path.join(self.repo_path, 'HEAD')
 
         if not os.path.exists(head_path):
             return None
 
         with open(head_path, 'r') as head_file:
-            ref = head_file.readline()
+            return head_file.readline()
 
-        ref_path = os.path.join(path, ref)
-
-        if os.path.exists(ref_path):
-            with open(ref_path, 'r') as ref_file:
-                return ref_file.readline()
-
-        return None
-
-    @staticmethod
-    def __get_seed(path):
-        seed_path = os.path.join(path, 'SEED')
+    def __get_seed(self):
+        seed_path = os.path.join(self.repo_path, 'SEED')
 
         if not os.path.exists(seed_path):
             return None
 
         with open(seed_path, 'r') as head_file:
-            return int(head_file.readline())
+            return int(head_file.read())
+
+    def __get_current_id(self):
+        if self.head is None:
+            return None
+
+        with open(os.path.join(self.repo_path, 'HEAD'), 'r') as head:
+            branch_path = head.readline()
+
+        with open(os.path.join(self.repo_path, branch_path), 'r') as branch_path:
+            return branch_path.readline().rstrip()
