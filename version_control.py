@@ -25,7 +25,7 @@ class VersionControl:
             raise RepositoryAlreadyExistError
 
         self.head = path.join('Refs', 'heads', 'main')
-        self.seed = randint(10**7, 10**8 - 1)
+        self.seed = randint(10 ** 7, 10 ** 8 - 1)
 
         self.drive.initialize_directories()
         self.commit("initial commit")
@@ -46,7 +46,8 @@ class VersionControl:
         commit_id = xxh3_128(self.username + description + datetime.now().isoformat(), seed=self.seed).hexdigest()
         tree_hash = Utils.get_tree_hash(self.repo_path, self.seed)
 
-        self.drive.write_commit_data(commit_id, self.username, datetime.now(), description, tree_hash.hexdigest(), self.current_id)
+        self.drive.write_commit_data(commit_id, self.username, datetime.now(), description, tree_hash.hexdigest(),
+                                     self.current_id)
 
         if self.current_id is not None:
             self.drive.save_tree(tree_hash.hexdigest())
@@ -67,7 +68,7 @@ class VersionControl:
         self.drive.write(branch_path, self.current_id)
 
     def checkout(self):
-        pass #TODO
+        pass  # TODO
 
     def log(self):
-        pass #TODO
+        pass  # TODO
