@@ -7,6 +7,20 @@ import pytest
 
 
 class Utils:
+
+    @staticmethod
+    def get_tree_diff(tree1, tree2):
+        result = []
+        added_files, removed_files = Utils.__compare_trees(tree1, tree2)
+
+        for file in sorted(added_files):
+            result.append(f"+ {file}")
+
+        for file in sorted(removed_files):
+            result.append(f"- {file}")
+
+        return '\n'.join(result)
+
     @staticmethod
     def get_file_hash(abs_path: str, workspace_path: str, seed: int) -> xxh3_128:
         assert path.isfile(abs_path)
@@ -30,3 +44,23 @@ class Utils:
                 local_path, file_hash = line.split()
                 cur_hash.update(file_hash)
         return cur_hash
+
+    @staticmethod
+    def __get_relative_paths(dir_path):
+        relative_paths = set()
+        for root, _, files in walk(dir_path):
+            for file in files:
+                absolute_path = path.join(root, file)
+                relative_path = path.relpath(absolute_path, dir_path)
+                relative_paths.add(relative_path)
+        return relative_paths
+
+    @staticmethod
+    def __compare_trees(tree1, tree2):
+        dir1_files = Utils.__get_relative_paths(tree1)
+        dir2_files = Utils.__get_relative_paths(tree2)
+
+        removed_files = dir1_files - dir2_files
+        added_files = dir2_files - dir1_files
+
+        return added_files, removed_files

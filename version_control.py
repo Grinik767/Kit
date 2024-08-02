@@ -56,7 +56,7 @@ class VersionControl:
         if len(new_data) == 0:
             self.drive.remove(index_path)
         else:
-            self.drive.write(index_path, data.join('\n'))
+            self.drive.write(index_path, '\n'.join(new_data))
 
     def commit(self, description: str) -> None:
         if path.exists(path.join(self.repo_path, 'objects', self.head[:2], self.head[2:])):
