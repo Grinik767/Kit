@@ -41,8 +41,8 @@ class Utils:
         cur_hash = xxh3_128('kit', seed=seed)
         with open(index_path, 'r') as f:
             for line in f:
-                local_path, file_hash = line.split()
-                cur_hash.update(file_hash)
+                local_path, file_hash = line.split(',')
+                cur_hash.update(file_hash.strip())
         return cur_hash
 
     @staticmethod

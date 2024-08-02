@@ -44,7 +44,7 @@ class VersionControl:
         new_data = []
 
         for line in data.split('\n')[:-1]:
-            file_path, hash = line.split()
+            file_path, file_hash = line.split(',')
 
             if local_path is None:
                 continue
@@ -52,7 +52,7 @@ class VersionControl:
             if file_path == local_path:
                 continue
 
-            new_data.append(f'{file_path} {hash}')
+            new_data.append(f'{file_path},{file_hash}')
 
         if len(new_data) == 0:
             self.drive.remove(index_path)

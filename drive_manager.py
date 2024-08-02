@@ -91,7 +91,7 @@ class DriveManager:
     def write_index_data(self):
         with open(self.index_path, 'w') as f:
             for filepath in self.index_hashes:
-                f.write(f"{filepath} {self.index_hashes[filepath]}\n")
+                f.write(f"{filepath},{self.index_hashes[filepath]}\n")
 
     def load_tree_files(self, tree_hash: str):
         if not tree_hash:
@@ -126,8 +126,8 @@ class DriveManager:
             return result
         with open(self.index_path, 'r') as f:
             for line in f:
-                filepath, filehash = line.split()
-                result[filepath] = filehash
+                filepath, filehash = line.split(',')
+                result[filepath] = filehash.strip()
         return result
 
     def initialize_directories(self):
