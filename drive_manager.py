@@ -95,17 +95,17 @@ class DriveManager:
             return
         tree_path = path.join(self.repo_path, 'objects', tree_hash[:2], tree_hash[2:])
         for root, dirs, files in walk(tree_path):
-            rel_path = path.abspath(path.relpath(root, start=tree_path))
+            rel_path = path.relpath(root, start=tree_path)
             makedirs(rel_path, exist_ok=True)
             for file in files:
                 with open(path.join(root, file), 'r') as f:
                     filehash = f.read().strip()
-                with open(path.join(rel_path, file), 'wb') as f:
+                with open(path.join(self.workspace_path, rel_path, file), 'wb') as f:
                     f.write(self.load_file(filehash))
 
     def delete_tree_files(self, tree_hash: str):
         if not tree_hash:
-            return
+            return #TODO сюда приходит None в случае если
         tree_path = path.join(self.repo_path, 'objects', tree_hash[:2], tree_hash[2:])
         for root, dirs, files in walk(tree_path, topdown=False):
             for file in files:

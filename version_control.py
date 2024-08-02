@@ -100,7 +100,7 @@ class VersionControl:
             raise errors.UncommitedChangesError()
 
         if self.drive.is_exist(path.join('.kit', tag_path)):
-            commit_id = self.drive.read(path.join('.kit', tag_path))
+            commit_id = self.drive.read(path.join('.kit', tag_path)).split()[-1]
             self.drive.write(path.join('.kit', 'HEAD'), 'None')
         elif self.drive.is_exist(path.join('.kit', branch_path)):
             commit_id = self.drive.read(path.join('.kit', branch_path))
@@ -108,7 +108,7 @@ class VersionControl:
         elif self.drive.is_exist(commit_path):
             commit_id = name
         else:
-            raise errors.CheckoutError(f"Commit/branch/tag with {name} does not exist")
+            raise errors.CheckoutError(f"Commit/branch/tag with name {name} does not exist")
 
         self.head = self.drive.get_head()
         self.drive.delete_tree_files(self.drive.get_commit_tree_hash(self.current_id))
