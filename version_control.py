@@ -35,6 +35,10 @@ class VersionControl:
 
     def remove(self, local_path: str = None) -> None:
         index_path = path.join('.kit', 'INDEX')
+
+        if self.drive.is_exist(index_path):
+            return
+
         data = self.drive.read(index_path)
         new_data = []
 

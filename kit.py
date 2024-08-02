@@ -40,6 +40,8 @@ def commit(args, vcs):
         print(f"Committed with message: {args.message}")
     except errors.NothingToCommitError as e:
         print(e)
+    except errors.NotOnBranchError as e:
+        print(e)
 
 
 def branch(args, vcs):
@@ -63,6 +65,8 @@ def checkout(args, vcs):
         vcs.checkout(args.name)
         print(f'Checked out to {args.name}')
     except errors.CheckoutError as e:
+        print(e)
+    except errors.UncommitedChangesError as e:
         print(e)
 
 
