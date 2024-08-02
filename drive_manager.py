@@ -1,5 +1,7 @@
 import os
 import lzma
+import subprocess
+import platform
 from utils import *
 
 
@@ -137,6 +139,9 @@ class DriveManager:
         os.makedirs(os.path.join(self.repo_path, 'refs', 'tags'), exist_ok=True)
 
         open(os.path.join(self.repo_path, 'INDEX'), 'w').close()
+
+        if platform.system() == "Windows":
+            subprocess.run(['attrib', '+H', self.repo_path], check=True)
 
     def get_head(self):
         head_path = os.path.join(self.repo_path, 'HEAD')

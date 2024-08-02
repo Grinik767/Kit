@@ -33,13 +33,16 @@ class VersionControl:
         self.drive.write_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id), self.seed)
         self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
-    def remove(self, local_path: str) -> None:
+    def remove(self, local_path: str = None) -> None:
         index_path = path.join('.kit', 'INDEX')
         data = self.drive.read(index_path)
         new_data = []
 
         for line in data.split('\n')[:-1]:
             file_path, hash = line.split()
+
+            if local_path is None:
+                continue
 
             if file_path == local_path:
                 continue
