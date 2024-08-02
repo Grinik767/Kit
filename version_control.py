@@ -38,17 +38,21 @@ class VersionControl:
         data = self.drive.read(index_path)
         new_data = []
 
-        for line in data.split():
+        for line in data.split('\n')[:-1]:
             file_path, hash = line.split()
+
             if file_path == local_path:
                 continue
 
             new_data.append(f'{file_path} {hash}')
 
-        self.drive.write(index_path, data.join('\n'))
+        if len(new_data) == 0:
+            self.drive.remove(index_path)
+        else:
+            self.drive.write(index_path, data.join('\n'))
 
     def commit(self, description: str) -> None:
-        if self.head is None:
+        if path.exists(path.join(self.repo_path, 'objects', self.head[:2], self.head[2:])):
             raise errors.NotOnBranchError()
 
         index_path = path.join('.kit', 'INDEX')
@@ -101,7 +105,7 @@ class VersionControl:
 
         if self.drive.is_exist(path.join('.kit', tag_path)):
             commit_id = self.drive.read(path.join('.kit', tag_path)).split()[-1]
-            self.drive.write(path.join('.kit', 'HEAD'), 'None')
+            self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         elif self.drive.is_exist(path.join('.kit', branch_path)):
             commit_id = self.drive.read(path.join('.kit', branch_path))
             self.drive.write(path.join('.kit', 'HEAD'), branch_path)
@@ -115,8 +119,13 @@ class VersionControl:
         self.drive.load_tree_files(self.drive.get_commit_tree_hash(commit_id))
         self.current_id = commit_id
 
-    def log(self) -> None:
-        pass  # TODO
+    def log(self) -> (str, str, str, str):
+        name = self.current_id
+
+        while name != 'None':
+            user, date, description, _, parent = self.drive.read(path.join('.kit', "objects", name[:2], name[2:])).split('\n')
+            yield name, user, date, description
+            name = parent
 
 
 if __name__ == '__main__':

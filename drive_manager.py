@@ -105,15 +105,17 @@ class DriveManager:
 
     def delete_tree_files(self, tree_hash: str):
         if not tree_hash:
-            return #TODO сюда приходит None в случае если
+            return
         tree_path = path.join(self.repo_path, 'objects', tree_hash[:2], tree_hash[2:])
         for root, dirs, files in walk(tree_path, topdown=False):
             for file in files:
-                full_path = path.abspath(path.relpath(path.join(root, file), start=tree_path))
+                full_path = path.join(self.workspace_path, path.relpath(path.join(root, file), start=tree_path))
+                print(full_path)
                 if path.exists(full_path):
                     remove(full_path)
             for directory in dirs:
-                full_path = path.abspath(path.relpath(path.join(root, directory), start=tree_path))
+                full_path = path.join(self.workspace_path, path.relpath(path.join(root, directory), start=tree_path))
+                print(full_path)
                 if path.exists(full_path):
                     rmdir(full_path)
 
@@ -143,12 +145,7 @@ class DriveManager:
             return None
 
         with open(head_path, 'r') as head_file:
-            data = head_file.readline()
-
-            if data == 'None':
-                return None
-
-            return data
+            return head_file.readline()
 
     def get_seed(self):
         seed_path = os.path.join(self.repo_path, 'SEED')
@@ -161,7 +158,10 @@ class DriveManager:
 
     def get_last_commit_id(self, head):
         if head is None:
-            return
+            return None
+
+        if path.exists(os.path.join(self.repo_path, 'objects', head[:2], head[2:])):
+            return head
 
         with open(os.path.join(self.repo_path, 'HEAD'), 'r') as head:
             branch_path = head.readline()
