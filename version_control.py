@@ -30,7 +30,8 @@ class VersionControl:
         self.drive.write(path.join('.kit', self.head), self.current_id)
 
     def add(self, local_path: str) -> None:
-        self.drive.write_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id), self.seed)
+        self.drive.calculate_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id), self.seed)
+        self.drive.write_index_data()
         self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
     def remove(self, local_path: str = None) -> None:
@@ -130,7 +131,8 @@ class VersionControl:
         name = self.current_id
 
         while name != 'None':
-            user, date, description, _, parent = self.drive.read(path.join('.kit', "objects", name[:2], name[2:])).split('\n')
+            user, date, description, _, parent = self.drive.read(
+                path.join('.kit', "objects", name[:2], name[2:])).split('\n')
             yield name, user, date, description
             name = parent
 

@@ -31,15 +31,14 @@ class DriveManager:
         os.makedirs(hash_folder)
         if path.exists(prev_tree_path):
             copy_tree(prev_tree_path, hash_folder)
-        with open(self.index_path, 'r') as f:
-            for line in f:
-                filepath, file_hash = line.split()
-                folder_name = path.split(filepath)[:-1][0]
-                folder_path = path.join(hash_folder, folder_name)
-                if folder_name:
-                    os.makedirs(folder_path, exist_ok=True)
-                with open(path.join(folder_path, path.basename(filepath)), 'w') as f:
-                    f.write(file_hash)
+        for filepath in self.index_hashes:
+            file_hash = self.index_hashes[filepath]
+            folder_name = path.split(filepath)[:-1][0]
+            folder_path = path.join(hash_folder, folder_name)
+            if folder_name:
+                os.makedirs(folder_path, exist_ok=True)
+            with open(path.join(folder_path, path.basename(filepath)), 'w') as f:
+                f.write(file_hash)
 
     def load_file(self, file_hash):
         folder = file_hash[:2]
@@ -51,10 +50,8 @@ class DriveManager:
         return lzma.decompress(compressed_data)
 
     def save_files_from_index(self):
-        with open(self.index_path, 'r') as index:
-            for line in index.readlines():
-                file_path, cur_hash = line.rstrip().split(' ')
-                self.save_file(file_path, cur_hash)
+        for filepath in self.index_hashes:
+            self.save_file(filepath, self.index_hashes[filepath])
 
     def write(self, local_path, data):
         with open(os.path.join(self.workspace_path, local_path), 'w') as file:
@@ -69,28 +66,32 @@ class DriveManager:
         with open(os.path.join(self.repo_path, 'objects', commit_id[:2], commit_id[2:]), 'w') as commit:
             commit.write(f"{username}\n{datetime}\n{description}\n{tree}\n{parent}")
 
-    def write_index_data(self, local_path: str, prev_tree_hash: str, seed: int):
+    def calculate_index_data(self, local_path: str, prev_tree_hash: str, seed: int):
         file_path = os.path.join(self.workspace_path, local_path)
-        with open(self.index_path, 'a') as index:
-            if not path.isdir(file_path):
-                rel_path = path.relpath(file_path, start=self.workspace_path)
-                filehash = Utils.get_file_hash(file_path, self.workspace_path, seed).hexdigest()
-                prev_tree_path = path.join(self.repo_path, 'objects', prev_tree_hash[:2], prev_tree_hash[2:])
-                prev_filehash = None
-                if path.exists(path.join(prev_tree_path, rel_path)):
-                    with open(path.join(prev_tree_path, rel_path), 'r') as f:
-                        prev_filehash = f.read().strip()
-                if filehash not in self.index_hashes and (prev_filehash is None or prev_filehash != filehash):
-                    self.index_hashes[filehash] = rel_path
-                    index.write(f"{rel_path} {filehash}\n")
-                return
+        if not path.isdir(file_path):
+            rel_path = path.relpath(file_path, start=self.workspace_path)
+            filehash = Utils.get_file_hash(file_path, self.workspace_path, seed).hexdigest()
+            prev_tree_path = path.join(self.repo_path, 'objects', prev_tree_hash[:2], prev_tree_hash[2:])
+            prev_filehash = None
+            if path.exists(path.join(prev_tree_path, rel_path)):
+                with open(path.join(prev_tree_path, rel_path), 'r') as f:
+                    prev_filehash = f.read().strip()
+            if prev_filehash is None or prev_filehash != filehash:
+                self.index_hashes[rel_path] = filehash
+            elif prev_filehash == filehash and rel_path in self.index_hashes:
+                del self.index_hashes[rel_path]
+            return
 
-            for root, _, files in os.walk(file_path):
-                for file in files:
-                    file_full_path = path.join(root, file)
+        for root, _, files in os.walk(file_path):
+            for file in files:
+                file_full_path = path.join(root, file)
+                relative_path = path.relpath(file_full_path, start=self.workspace_path)
+                self.calculate_index_data(relative_path, prev_tree_hash, seed)
 
-                    relative_path = path.relpath(file_full_path, start=self.workspace_path)
-                    self.write_index_data(relative_path, prev_tree_hash, seed)
+    def write_index_data(self):
+        with open(self.index_path, 'w') as f:
+            for filepath in self.index_hashes:
+                f.write(f"{filepath} {self.index_hashes[filepath]}\n")
 
     def load_tree_files(self, tree_hash: str):
         if not tree_hash:
@@ -112,12 +113,10 @@ class DriveManager:
         for root, dirs, files in walk(tree_path, topdown=False):
             for file in files:
                 full_path = path.join(self.workspace_path, path.relpath(path.join(root, file), start=tree_path))
-                print(full_path)
                 if path.exists(full_path):
                     remove(full_path)
             for directory in dirs:
                 full_path = path.join(self.workspace_path, path.relpath(path.join(root, directory), start=tree_path))
-                print(full_path)
                 if path.exists(full_path):
                     rmdir(full_path)
 
@@ -128,7 +127,7 @@ class DriveManager:
         with open(self.index_path, 'r') as f:
             for line in f:
                 filepath, filehash = line.split()
-                result[filehash] = filepath
+                result[filepath] = filehash
         return result
 
     def initialize_directories(self):
