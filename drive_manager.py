@@ -32,13 +32,17 @@ class DriveManager:
         if path.exists(prev_tree_path):
             copy_tree(prev_tree_path, hash_folder)
         for filepath in self.index_hashes:
-            file_hash = self.index_hashes[filepath][0]
+            file_hash, is_add = self.index_hashes[filepath][0], self.index_hashes[filepath][1]
             folder_name = path.split(filepath)[:-1][0]
             folder_path = path.join(hash_folder, folder_name)
             if folder_name:
                 os.makedirs(folder_path, exist_ok=True)
-            with open(path.join(folder_path, path.basename(filepath)), 'w') as f:
-                f.write(file_hash)
+            filepath = path.join(folder_path, path.basename(filepath))
+            if is_add:
+                with open(filepath, 'w') as f:
+                    f.write(file_hash)
+                continue
+            remove(filepath)
 
     def load_file(self, file_hash):
         folder = file_hash[:2]
@@ -51,7 +55,8 @@ class DriveManager:
 
     def save_files_from_index(self):
         for filepath in self.index_hashes:
-            self.save_file(filepath, self.index_hashes[filepath][0])
+            if self.index_hashes[filepath][1]:
+                self.save_file(filepath, self.index_hashes[filepath][0])
 
     def write(self, local_path, data):
         with open(os.path.join(self.workspace_path, local_path), 'w') as file:
@@ -99,6 +104,13 @@ class DriveManager:
                 f.write(
                     f"{filepath},{self.index_hashes[filepath][0]},"
                     f"{Utils.bool_to_sign(self.index_hashes[filepath][1])}\n")
+
+    def rm_index_files(self):
+        for lcl_filepath in self.index_hashes:
+            if not self.index_hashes[lcl_filepath][1]:
+                filepath = path.join(self.workspace_path, lcl_filepath)
+                if path.exists(filepath):
+                    remove(filepath)
 
     def load_tree_files(self, tree_hash: str):
         if not tree_hash:

@@ -34,7 +34,7 @@ class VersionControl:
         self.drive.write_index_data()
         self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
-    def remove(self, local_path: str) -> None:
+    def rm(self, local_path: str) -> None:
         self.drive.calculate_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id),
                                         self.seed, False)
         self.drive.write_index_data()
@@ -85,6 +85,7 @@ class VersionControl:
         if self.current_id is not None:
             self.drive.save_tree(tree_hash, self.drive.get_commit_tree_hash(self.current_id))
 
+        self.drive.rm_index_files()
         self.drive.save_files_from_index()
         self.current_id = commit_id
         self.drive.write(path.join('.kit', self.head), self.current_id)
@@ -148,6 +149,7 @@ class VersionControl:
             self.drive.write(path.join('.kit', 'HEAD'), branch_path)
         elif self.drive.is_exist(commit_path):
             commit_id = name
+            self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         else:
             raise errors.CheckoutError(f"Commit/branch/tag with name {name} does not exist")
 
