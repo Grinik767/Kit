@@ -30,17 +30,20 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'SEED'), str(self.seed))
         self.drive.write(path.join('.kit', self.head), self.current_id)
 
+    @Utils.check_repository_exists
     def add(self, local_path: str) -> None:
         self.drive.calculate_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id), self.seed)
         self.drive.write_index_data()
         self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
+    @Utils.check_repository_exists
     def rm(self, local_path: str) -> None:
         self.drive.calculate_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id),
                                         self.seed, False)
         self.drive.write_index_data()
         self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
+    @Utils.check_repository_exists
     def index(self) -> None:
         if not self.drive.is_exist(self.index_path):
             return
@@ -48,9 +51,10 @@ class VersionControl:
         for line in self.drive.read(self.index_path).split('\n')[:-1]:
             yield line
 
+    @Utils.check_repository_exists
     def commit(self, description: str) -> None:
         if self.current_id is not None and not self.drive.is_exist(self.index_path):
-            raise errors.NothingToCommitError()
+            raise errors.NothingToCommitError("No changes detected in the index. There is nothing to commit.")
 
         commit_time = datetime.now()
         commit_id = Utils.get_string_hash(''.join((self.username, description, commit_time.isoformat())),
@@ -75,6 +79,7 @@ class VersionControl:
             self.drive.remove(self.index_path)
             self.drive.index_hashes.clear()
 
+    @Utils.check_repository_exists
     def commits_list(self) -> (str, str, str, str):
         name = self.current_id
 
@@ -84,7 +89,8 @@ class VersionControl:
             yield name, user, date, description
             name = parent
 
-    def commits_diff(self, commit1_hash: str, commit2_hash: str):
+    @Utils.check_repository_exists
+    def commits_diff(self, commit1_hash: str, commit2_hash: str) -> (str, str, str):
         tree1_hash = self.drive.commit_to_tree(commit1_hash)
         tree2_hash = self.drive.commit_to_tree(commit2_hash)
         tree1_path = path.abspath(path.join('.kit', "objects", tree1_hash[:2], tree1_hash[2:]))
@@ -93,6 +99,7 @@ class VersionControl:
         for line in Utils.get_tree_diff(tree1_path, tree2_path):
             yield line
 
+    @Utils.check_repository_exists
     def create_branch(self, name: str) -> None:
         branch_path = path.join('.kit', 'refs', 'heads', name)
 
@@ -101,17 +108,20 @@ class VersionControl:
 
         self.drive.write(branch_path, self.current_id)
 
-    def branches_list(self):
+    @Utils.check_repository_exists
+    def branches_list(self) -> (str, str, str):
         branches_path = path.join('.kit', 'refs', 'heads')
         for branch in self.drive.get_files_in_dir(branches_path):
             yield branch
 
+    @Utils.check_repository_exists
     def remove_branch(self, name: str) -> None:
         branch_path = path.join('.kit', 'refs', 'heads', name)
 
         if self.drive.is_exist(branch_path):
             self.drive.remove(branch_path)
 
+    @Utils.check_repository_exists
     def create_tag(self, name: str, description: str = None) -> None:
         tag_path = path.join('.kit', 'refs', 'tags', name)
 
@@ -120,22 +130,26 @@ class VersionControl:
 
         self.drive.write(tag_path, f"{self.username}\n{datetime.now()}\n{description}\n{self.current_id}")
 
-    def tags_list(self):
+    @Utils.check_repository_exists
+    def tags_list(self) -> (str, str, str):
         tags_path = path.join('.kit', 'refs', 'tags')
         for tag in self.drive.get_files_in_dir(tags_path):
             yield f'{tag}\n{self.drive.read(path.join(tags_path, tag))}'
 
+    @Utils.check_repository_exists
     def remove_tag(self, name: str) -> None:
         tag_path = path.join('.kit', 'refs', 'tags', name)
 
         if self.drive.is_exist(tag_path):
             self.drive.remove(tag_path)
 
+    @Utils.check_repository_exists
     def checkout_to_commit(self, name: str, force: bool) -> None:
         commit_path = path.join('.kit', "objects", name[:2], name[2:])
 
         if self.drive.is_exist(self.index_path) and not force:
-            raise errors.UncommitedChangesError()
+            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
+                                                "commit or discard them before switching branches, tags, or commits.")
 
         if not self.drive.is_exist(commit_path):
             raise errors.CheckoutError(f"Commit with name {name} does not exist")
@@ -144,11 +158,13 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         self.__load_commit_data(commit_id)
 
+    @Utils.check_repository_exists
     def checkout_to_tag(self, name: str, force: bool) -> None:
         tag_path = path.join('refs', 'tags', name)
 
         if self.drive.is_exist(self.index_path) and not force:
-            raise errors.UncommitedChangesError()
+            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
+                                                "commit or discard them before switching branches, tags, or commits.")
 
         if not self.drive.is_exist(path.join('.kit', tag_path)):
             raise errors.CheckoutError(f"Tag with name {name} does not exist")
@@ -157,11 +173,13 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         self.__load_commit_data(commit_id)
 
+    @Utils.check_repository_exists
     def checkout_to_branch(self, name: str, force: bool) -> None:
         branch_path = path.join('refs', 'heads', name)
 
         if self.drive.is_exist(self.index_path) and not force:
-            raise errors.UncommitedChangesError()
+            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
+                                                "commit or discard them before switching branches, tags, or commits.")
 
         if not self.drive.is_exist(path.join('.kit', branch_path)):
             raise errors.CheckoutError(f"Branch with name {name} does not exist")
@@ -170,13 +188,15 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'HEAD'), branch_path)
         self.__load_commit_data(commit_id)
 
+    @Utils.check_repository_exists
     def checkout(self, name: str, force: bool) -> None:
         tag_path = path.join('refs', 'tags', name)
         branch_path = path.join('refs', 'heads', name)
         commit_path = path.join('.kit', "objects", name[:2], name[2:])
 
         if self.drive.is_exist(self.index_path) and not force:
-            raise errors.UncommitedChangesError()
+            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
+                                                "commit or discard them before switching branches, tags, or commits.")
 
         if self.drive.is_exist(path.join('.kit', branch_path)):
             self.checkout_to_branch(name, force)

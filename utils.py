@@ -8,6 +8,15 @@ import pytest
 
 class Utils:
     @staticmethod
+    def check_repository_exists(method):
+        def wrapper(self, *args, **kwargs):
+            if not path.isdir(path.join(self.workspace_path, ".kit")):
+                raise errors.RepositoryExistError("No repository found in the current directory")
+            return method(self, *args, **kwargs)
+
+        return wrapper
+
+    @staticmethod
     def get_tree_diff(tree1_path, tree2_path):
         result = []
         added_files, removed_files, changed_files = Utils.__compare_trees(tree1_path, tree2_path)

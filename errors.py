@@ -1,68 +1,32 @@
-class AlreadyExistError(Exception):
+class BaseError(Exception):
     def __init__(self, *args):
-        if args:
-            self.message = args[0]
-        else:
-            self.message = None
+        self.message = args[0] if args else None
 
     def __str__(self):
         if self.message:
-            return f'AlreadyExistError: {self.message}'
-        else:
-            return f'AlreadyExistError'
+            return f'{self.__class__.__name__}: {self.message}'
+        return self.__class__.__name__
 
 
-class CheckoutError(Exception):
-    def __init__(self, *args):
-        if args:
-            self.message = args[0]
-        else:
-            self.message = None
-
-    def __str__(self):
-        if self.message:
-            return f'CheckoutError: {self.message}'
-        else:
-            return f'CheckoutError'
+class AlreadyExistError(BaseError):
+    pass
 
 
-class NothingToCommitError(Exception):
-    def __init__(self, *args):
-        if args:
-            self.message = args[0]
-        else:
-            self.message = None
-
-    def __str__(self):
-        if self.message:
-            return f'NothingToCommitError: {self.message}'
-        else:
-            return f'NothingToCommitError'
+class CheckoutError(BaseError):
+    pass
 
 
-class NotOnBranchError(Exception):
-    def __init__(self, *args):
-        if args:
-            self.message = args[0]
-        else:
-            self.message = None
-
-    def __str__(self):
-        if self.message:
-            return f'NotOnBranchError: {self.message}'
-        else:
-            return f'NotOnBranchError'
+class NothingToCommitError(BaseError):
+    pass
 
 
-class UncommitedChangesError(Exception):
-    def __init__(self, *args):
-        if args:
-            self.message = args[0]
-        else:
-            self.message = None
+class NotOnBranchError(BaseError):
+    pass
 
-    def __str__(self):
-        if self.message:
-            return f'UncommitedChangesError: {self.message}'
-        else:
-            return f'UncommitedChangesError'
+
+class UncommitedChangesError(BaseError):
+    pass
+
+
+class RepositoryExistError(BaseError):
+    pass
