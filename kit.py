@@ -1,128 +1,164 @@
 #!/usr/bin/env python
 
-import argparse
+import click
 import os
-import errors
 from version_control import VersionControl
 
 
-def init(args, vcs):
-    try:
-        vcs.init()
-        print(f"Initialized empty kit repository in {vcs.repo_path}")
-    except errors.AlreadyExistError as e:
-        print(e)
+@click.group()
+@click.pass_context
+def main(ctx):
+    """Kit Version Control System"""
+    ctx.ensure_object(dict)
+    repo_path = os.path.abspath('.')
+    username = os.getenv('KIT_USERNAME', 'default_user')
+    ctx.obj['vcs'] = VersionControl(username, repo_path)
 
 
-def add(args, vcs):
-    try:
-        vcs.add(args.file)
-        print(f"Added {args.file} to index.")
-    except FileNotFoundError:
-        print(f"Error: File {args.file} not found.")
+@click.command()
+@click.pass_context
+def init(ctx):
+    """Initialize a new repository"""
+    vcs = ctx.obj['vcs']
+    vcs.init()
+    click.echo(f"\tInitialized empty kit repository in {vcs.repo_path}")
 
 
-def remove(args, vcs):
-    if args.file is None:
-        vcs.remove()
-        print(f"Removed all files from index.")
+@click.command()
+@click.argument('file')
+@click.pass_context
+def add(ctx, file):
+    """Add file contents to the index"""
+    vcs = ctx.obj['vcs']
+    vcs.add(file)
+    click.echo(f"\tAdded {file} to index.")
+
+
+@click.command()
+@click.argument('file', required=False)
+@click.pass_context
+def remove(ctx, file):
+    """Remove file contents from the index or repository"""
+    vcs = ctx.obj['vcs']
+    vcs.rm(file)
+    click.echo(f"\tRemoved {file}.")
+
+
+@click.command()
+@click.option('-m', '--message', required=True, help="Commit message")
+@click.pass_context
+def commit(ctx, message):
+    """Record changes to the repository"""
+    vcs = ctx.obj['vcs']
+    vcs.commit(message)
+    click.echo(f"\tCommitted with message: {message}")
+
+
+@click.command()
+@click.argument('name')
+@click.option('-d', '--delete', is_flag=True, help="Delete the specified branch")
+@click.pass_context
+def branch(ctx, name, delete):
+    """Create or manage branches"""
+    vcs = ctx.obj['vcs']
+    if delete:
+        vcs.remove_branch(name)
+        click.echo(f'\tBranch with name {name} deleted.')
     else:
-        try:
-            vcs.remove(args.file)
-            print(f"Removed {args.file} from index.")
-        except FileNotFoundError:
-            print(f"Error: File {args.file} not found.")
+        vcs.create_branch(name)
+        click.echo(f'\tBranch with name {name} created.')
 
 
-def commit(args, vcs):
-    try:
-        vcs.commit(args.message)
-        print(f"Committed with message: {args.message}")
-    except errors.NothingToCommitError as e:
-        print(e)
-    except errors.NotOnBranchError as e:
-        print(e)
+@click.command()
+@click.pass_context
+def branches(ctx):
+    """Get all branches"""
+    vcs = ctx.obj['vcs']
+    for info in vcs.branches_list():
+        click.echo(f'\tName: {info}')
 
 
-def branch(args, vcs):
-    try:
-        vcs.branch(args.name)
-        print(f'Branch with name {args.name} created.')
-    except errors.AlreadyExistError as e:
-        print(e)
-
-
-def tag(args, vcs):
-    try:
-        vcs.tag(args.name, args.message)
-        print(f'Tag with name {args.name} created.')
-    except errors.AlreadyExistError as e:
-        print(e)
-
-
-def checkout(args, vcs):
-    try:
-        vcs.checkout(args.name)
-        print(f'Checked out to {args.name}')
-    except errors.CheckoutError as e:
-        print(e)
-    except errors.UncommitedChangesError as e:
-        print(e)
-
-
-def log(args, vcs):
-    try:
-        for data in vcs.log():
-            print(f'Commit: {data[0]}; User: {data[1]}; Date: {data[2]}; Message: {data[3]}')
-    except Exception as e:
-        print(f"Error retrieving log: {e}")
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Kit Version Control System")
-    subparsers = parser.add_subparsers(dest="command", help="Sub-command help")
-
-    init_parser = subparsers.add_parser("init", help="Initialize a new repository")
-    init_parser.add_argument("path", nargs='?', default='.', help="Path to the working directory")
-    init_parser.set_defaults(func=init)
-
-    add_parser = subparsers.add_parser("add", help="Add file contents to the index")
-    add_parser.add_argument("file", help="File or directory to add")
-    add_parser.set_defaults(func=add)
-
-    remove_parser = subparsers.add_parser("remove", help="Remove file contents from the index")
-    remove_parser.add_argument("file", nargs='?', help="File or directory to remove")
-    remove_parser.set_defaults(func=remove)
-
-    commit_parser = subparsers.add_parser("commit", help="Record changes to the repository")
-    commit_parser.add_argument("-m", "--message", required=True, help="Commit message")
-    commit_parser.set_defaults(func=commit)
-
-    branch_parser = subparsers.add_parser("branch", help="Create or manage branches")
-    branch_parser.add_argument("name", help="Name of the new branch or branch to switch to")
-    branch_parser.set_defaults(func=branch)
-
-    tag_parser = subparsers.add_parser("tag", help="Create or manage tags")
-    tag_parser.add_argument("name", help="Name of the new tag")
-    tag_parser.add_argument("-m", "--message", required=True, help="Tag message")
-    tag_parser.set_defaults(func=tag)
-
-    checkout_parser = subparsers.add_parser("checkout", help="Checkout on branch/commit/tag")
-    checkout_parser.add_argument("name", help="Name of the new branch or branch to switch to")
-    checkout_parser.set_defaults(func=checkout)
-
-    log_parser = subparsers.add_parser("log", help="Show commit logs")
-    log_parser.set_defaults(func=log)
-
-    args = parser.parse_args()
-    repo_path = os.path.abspath(args.path if args.command == "init" else '.')
-    vcs = VersionControl(os.getenv('KIT_USERNAME', 'default_user'), repo_path)
-
-    if hasattr(args, 'func'):
-        args.func(args, vcs)
+@click.command()
+@click.argument('name')
+@click.option('-d', '--delete', is_flag=True, help="Delete the specified branch")
+@click.option('-m', '--message', required=False, help="Tag message")
+@click.pass_context
+def tag(ctx, name, delete, message):
+    """Create or manage tags"""
+    vcs = ctx.obj['vcs']
+    if delete:
+        vcs.remove_tag(name)
+        click.echo(f'\tTag with name {name} deleted.')
     else:
-        parser.print_help()
+        vcs.create_tag(name, message)
+        click.echo(f'\tTag with name {name} created.')
 
+
+@click.command()
+@click.pass_context
+def tags(ctx):
+    """Get all tags"""
+    vcs = ctx.obj['vcs']
+    for info in vcs.tags_list():
+        info = info.split('\n')
+        click.echo(f'\tName: {info[0]}; User: {info[1]}; Date: {info[2]}; Message: {info[3]}')
+
+
+@click.command()
+@click.argument('name')
+@click.option('-b', '--branch', is_flag=True, help="Switch to the specified branch")
+@click.option('-t', '--tag', is_flag=True, help="Switch to the specified tag")
+@click.option('-c', '--commit', is_flag=True, help="Switch to the specified commit")
+@click.pass_context
+def checkout(ctx, name, branch, tag, commit):
+    """Checkout to branch, commit or tag"""
+    vcs = ctx.obj['vcs']
+
+    if branch:
+        vcs.checkout_to_branch(name)
+    elif tag:
+        vcs.checkout_to_tag(name)
+    elif commit:
+        vcs.checkout_to_commit(name)
+    else:
+        vcs.checkout(name)
+
+    click.echo(f'\tChecked out to {name}')
+
+
+@click.command()
+@click.pass_context
+def index(ctx):
+    """Show index"""
+    vcs = ctx.obj['vcs']
+    for info in vcs.index():
+        info = info.split(',')
+        click.echo(f'\t{3 * info[2]} {info[0]}')
+
+
+@click.command()
+@click.pass_context
+def log(ctx):
+    """Show commit logs"""
+    vcs = ctx.obj['vcs']
+    for data in vcs.log():
+        click.echo(f'\tCommit: {data[0]}; User: {data[1]}; Date: {data[2]}; Message: {data[3]}')
+
+
+main.add_command(init)
+main.add_command(add)
+main.add_command(remove)
+main.add_command(commit)
+main.add_command(branch)
+main.add_command(branches)
+main.add_command(tag)
+main.add_command(tags)
+main.add_command(checkout)
+main.add_command(index)
+main.add_command(log)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        click.echo(f'\t{e}')

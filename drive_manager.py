@@ -16,19 +16,20 @@ class DriveManager:
         folder = file_hash[:2]
         name = file_hash[2:]
 
-        with open(os.path.join(self.workspace_path, local_path), 'rb') as file:
-            data = bytes(file.read())
-            compressed_data = lzma.compress(data)
+        input_path = os.path.join(self.workspace_path, local_path)
+        output_folder = os.path.join(self.repo_path, 'objects', folder)
+        output_path = os.path.join(output_folder, name)
 
-        os.makedirs(os.path.join(self.repo_path, 'objects', folder), exist_ok=True)
+        os.makedirs(output_folder, exist_ok=True)
 
-        with open(os.path.join(self.repo_path, 'objects', folder, name), 'wb') as file:
-            file.write(compressed_data)
+        with open(input_path, 'rb') as input_file, lzma.open(output_path, 'wb') as output_file:
+            for chunk in iter(lambda: input_file.read(4096), b""):
+                output_file.write(chunk)
 
     def save_tree(self, tree_hash: str, prev_tree_hash: str):
         prev_tree_path = path.join(self.repo_path, 'objects', prev_tree_hash[:2], prev_tree_hash[2:])
         hash_folder = path.join(self.repo_path, 'objects', tree_hash[:2], tree_hash[2:])
-        os.makedirs(hash_folder)
+        os.makedirs(hash_folder, exist_ok=True)
         if path.exists(prev_tree_path):
             copy_tree(prev_tree_path, hash_folder)
         for filepath in self.index_hashes:
@@ -44,14 +45,16 @@ class DriveManager:
                 continue
             remove(filepath)
 
-    def load_file(self, file_hash):
+    def load_file(self, file_hash, output_path):
         folder = file_hash[:2]
         name = file_hash[2:]
+        compressed_path = os.path.join(self.repo_path, 'objects', folder, name)
 
-        with open(os.path.abspath(os.path.join(self.repo_path, 'objects', folder, name)), 'rb') as file:
-            compressed_data = file.read()
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        return lzma.decompress(compressed_data)
+        with lzma.open(compressed_path, 'rb') as compressed_file, open(output_path, 'wb') as output_file:
+            for chunk in iter(lambda: compressed_file.read(4096), b""):
+                output_file.write(chunk)
 
     def save_files_from_index(self):
         for filepath in self.index_hashes:
@@ -122,8 +125,8 @@ class DriveManager:
             for file in files:
                 with open(path.join(root, file), 'r') as f:
                     filehash = f.read().strip()
-                with open(path.join(self.workspace_path, rel_path, file), 'wb') as f:
-                    f.write(self.load_file(filehash))
+
+                self.load_file(filehash, path.join(self.workspace_path, rel_path, file))
 
     def delete_tree_files(self, tree_hash: str):
         if not tree_hash:
