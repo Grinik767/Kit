@@ -182,15 +182,21 @@ class DriveManager:
         with open(commit_path, 'r') as f:
             return f.readlines()[-2][:-1]
 
-    def is_exist(self, local_path):
+    def is_exist(self, local_path: str):
         return os.path.exists(os.path.join(self.workspace_path, local_path))
 
-    def delete_if_empty_file(self, local_path):
+    def delete_if_empty_file(self, local_path: str):
         full_path = path.join(self.workspace_path, local_path)
         if path.getsize(full_path) == 0:
             remove(full_path)
 
-    def remove(self, local_path):
+    def get_files_in_dir(self, local_path: str):
+        full_path = path.join(self.workspace_path, local_path)
+        for _, _, branches in walk(full_path):
+            for branch in branches:
+                yield branch
+
+    def remove(self, local_path: str):
         os.remove(os.path.join(self.workspace_path, local_path))
 
 

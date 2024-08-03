@@ -94,6 +94,17 @@ class VersionControl:
 
         self.drive.write(branch_path, self.current_id)
 
+    def branches(self):
+        branches_path = path.join('.kit', 'refs', 'heads')
+        for branch in self.drive.get_files_in_dir(branches_path):
+            yield branch
+
+    def remove_branch(self, name: str) -> None:
+        branch_path = path.join('.kit', 'refs', 'heads', name)
+
+        if self.drive.is_exist(branch_path):
+            self.drive.remove(branch_path)
+
     def tag(self, name: str, description: str = None) -> None:
         tag_path = path.join('.kit', 'refs', 'tags', name)
 
@@ -101,6 +112,17 @@ class VersionControl:
             raise errors.AlreadyExistError(f'Tag named {name} already exist')
 
         self.drive.write(tag_path, f"{self.username}\n{datetime.now()}\n{description}\n{self.current_id}")
+
+    def tags(self):
+        tags_path = path.join('.kit', 'refs', 'tags')
+        for tag in self.drive.get_files_in_dir(tags_path):
+            yield tag
+
+    def remove_tag(self, name: str) -> None:
+        tag_path = path.join('.kit', 'refs', 'tags', name)
+
+        if self.drive.is_exist(tag_path):
+            self.drive.remove(tag_path)
 
     def checkout(self, name: str) -> None:
         tag_path = path.join('refs', 'tags', name)
