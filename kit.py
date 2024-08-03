@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import click
-import os
+from os import path
+from getpass import getuser
 from version_control import VersionControl
 
 
@@ -10,8 +11,8 @@ from version_control import VersionControl
 def main(ctx):
     """Kit Version Control System"""
     ctx.ensure_object(dict)
-    repo_path = os.path.abspath('.')
-    username = os.getenv('KIT_USERNAME', 'default_user')
+    repo_path = path.abspath('.')
+    username = getuser()
     ctx.obj['vcs'] = VersionControl(username, repo_path)
 
 
