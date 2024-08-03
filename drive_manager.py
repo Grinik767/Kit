@@ -82,21 +82,21 @@ class DriveManager:
                 with open(path.join(prev_tree_path, rel_path), 'r') as f:
                     prev_filehash = f.read().strip()
             if is_add:
-                if rel_path in self.index_hashes and not self.index_hashes[rel_path][1]:
-                    return
                 if prev_filehash is None or prev_filehash != filehash:
                     self.index_hashes[rel_path] = (filehash, True)
                 elif prev_filehash == filehash and rel_path in self.index_hashes:
                     del self.index_hashes[rel_path]
             elif not is_add and prev_filehash is not None:
                 self.index_hashes[rel_path] = (filehash, False)
+            elif not is_add and prev_filehash is None:
+                del self.index_hashes[rel_path]
             return
 
         for root, _, files in os.walk(file_path):
             for file in files:
                 file_full_path = path.join(root, file)
                 relative_path = path.relpath(file_full_path, start=self.workspace_path)
-                self.calculate_index_data(relative_path, prev_tree_hash, seed)
+                self.calculate_index_data(relative_path, prev_tree_hash, seed, is_add)
 
     def write_index_data(self):
         with open(self.index_path, 'w') as f:
@@ -146,7 +146,7 @@ class DriveManager:
         with open(self.index_path, 'r') as f:
             for line in f:
                 filepath, filehash, diff_type = line.split(',')
-                result[filepath] = (filehash.strip(), Utils.sign_to_bool(diff_type))
+                result[filepath] = (filehash, Utils.sign_to_bool(diff_type.strip()))
         return result
 
     def initialize_directories(self):
