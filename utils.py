@@ -7,19 +7,21 @@ import pytest
 
 
 class Utils:
-
     @staticmethod
-    def get_tree_diff(tree1, tree2):
+    def get_tree_diff(tree1_path, tree2_path):
         result = []
-        added_files, removed_files = Utils.__compare_trees(tree1, tree2)
+        added_files, removed_files, changed_files = Utils.__compare_trees(tree1_path, tree2_path)
 
         for file in sorted(added_files):
-            result.append(f"+ {file}")
+            result.append(f"+;{file}")
+
+        for file in sorted(changed_files):
+            result.append(f"~;{file}")
 
         for file in sorted(removed_files):
-            result.append(f"- {file}")
+            result.append(f"-;{file}")
 
-        return '\n'.join(result)
+        return result
 
     @staticmethod
     def get_file_hash(abs_path: str, workspace_path: str, seed: int) -> xxh3_128:
@@ -56,12 +58,19 @@ class Utils:
     @staticmethod
     def __get_relative_paths(dir_path):
         relative_paths = set()
+
         for root, _, files in walk(dir_path):
             for file in files:
                 absolute_path = path.join(root, file)
                 relative_path = path.relpath(absolute_path, dir_path)
                 relative_paths.add(relative_path)
+
         return relative_paths
+
+    @staticmethod
+    def __read_file_content(file_path: str):
+        with open(file_path, 'rb') as file:
+            return file.read()
 
     @staticmethod
     def __compare_trees(tree1, tree2):
@@ -71,4 +80,14 @@ class Utils:
         removed_files = dir1_files - dir2_files
         added_files = dir2_files - dir1_files
 
-        return added_files, removed_files
+        common_files = dir1_files & dir2_files
+        changed_files = set()
+
+        for file in common_files:
+            file1 = path.join(tree1, file)
+            file2 = path.join(tree2, file)
+
+            if Utils.__read_file_content(file1) != Utils.__read_file_content(file2):
+                changed_files.add(file)
+
+        return added_files, removed_files, changed_files

@@ -110,19 +110,20 @@ def tags(ctx):
 @click.option('-b', '--branch', is_flag=True, help="Switch to the specified branch")
 @click.option('-t', '--tag', is_flag=True, help="Switch to the specified tag")
 @click.option('-c', '--commit', is_flag=True, help="Switch to the specified commit")
+@click.option('-f', '--force', is_flag=True, help="Force checkout")
 @click.pass_context
-def checkout(ctx, name, branch, tag, commit):
+def checkout(ctx, name, branch, tag, commit, force):
     """Checkout to branch, commit or tag"""
     vcs = ctx.obj['vcs']
 
     if branch:
-        vcs.checkout_to_branch(name)
+        vcs.checkout_to_branch(name, force)
     elif tag:
-        vcs.checkout_to_tag(name)
+        vcs.checkout_to_tag(name, force)
     elif commit:
-        vcs.checkout_to_commit(name)
+        vcs.checkout_to_commit(name, force)
     else:
-        vcs.checkout(name)
+        vcs.checkout(name, force)
 
     click.echo(f'\tChecked out to {name}')
 
@@ -138,12 +139,25 @@ def index(ctx):
 
 
 @click.command()
+@click.option('-p', '--patch', is_flag=True, help="Show commits difference")
 @click.pass_context
-def log(ctx):
+def log(ctx, patch):
     """Show commit logs"""
     vcs = ctx.obj['vcs']
-    for data in vcs.log():
-        click.echo(f'\tCommit: {data[0]}; User: {data[1]}; Date: {data[2]}; Message: {data[3]}')
+
+    commits = vcs.commits_list()
+    previous_commit = next(commits)
+    click.echo(f'\n\tCommit: {previous_commit[0]}; User: {previous_commit[1]}; Date: {previous_commit[2]}; '
+               f''f'Message: 'f'{previous_commit[3]}')
+
+    for current_commit in commits:
+        if patch:
+            for line in vcs.commits_diff(current_commit[0], previous_commit[0]):
+                sign, file = line.split(';')
+                click.echo(f'\t\t{3 * sign} {file}')
+        click.echo(f'\n\tCommit: {current_commit[0]}; User: {current_commit[1]}; Date: {current_commit[2]}; '
+                   f'Message: {current_commit[3]}')
+        previous_commit = current_commit
 
 
 main.add_command(init)

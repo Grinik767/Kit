@@ -49,9 +49,6 @@ class VersionControl:
             yield line
 
     def commit(self, description: str) -> None:
-        if path.exists(path.join(self.repo_path, 'objects', self.head[:2], self.head[2:])):
-            raise errors.NotOnBranchError()
-
         if self.current_id is not None and not self.drive.is_exist(self.index_path):
             raise errors.NothingToCommitError()
 
@@ -68,11 +65,33 @@ class VersionControl:
         self.drive.rm_index_files()
         self.drive.save_files_from_index()
         self.current_id = commit_id
-        self.drive.write(path.join('.kit', self.head), self.current_id)
+
+        if path.exists(path.join(self.repo_path, 'objects', self.head[:2], self.head[2:])):
+            self.drive.write(path.join('.kit', 'HEAD'), self.current_id)
+        else:
+            self.drive.write(path.join('.kit', self.head), self.current_id)
 
         if self.drive.is_exist(self.index_path):
             self.drive.remove(self.index_path)
             self.drive.index_hashes.clear()
+
+    def commits_list(self) -> (str, str, str, str):
+        name = self.current_id
+
+        while name != 'None':
+            user, date, description, _, parent = self.drive.read(
+                path.join('.kit', "objects", name[:2], name[2:])).split('\n')
+            yield name, user, date, description
+            name = parent
+
+    def commits_diff(self, commit1_hash: str, commit2_hash: str):
+        tree1_hash = self.drive.commit_to_tree(commit1_hash)
+        tree2_hash = self.drive.commit_to_tree(commit2_hash)
+        tree1_path = path.abspath(path.join('.kit', "objects", tree1_hash[:2], tree1_hash[2:]))
+        tree2_path = path.abspath(path.join('.kit', "objects", tree2_hash[:2], tree2_hash[2:]))
+
+        for line in Utils.get_tree_diff(tree1_path, tree2_path):
+            yield line
 
     def create_branch(self, name: str) -> None:
         branch_path = path.join('.kit', 'refs', 'heads', name)
@@ -112,10 +131,10 @@ class VersionControl:
         if self.drive.is_exist(tag_path):
             self.drive.remove(tag_path)
 
-    def checkout_to_commit(self, name: str) -> None:
+    def checkout_to_commit(self, name: str, force: bool) -> None:
         commit_path = path.join('.kit', "objects", name[:2], name[2:])
 
-        if self.drive.is_exist(self.index_path):
+        if self.drive.is_exist(self.index_path) and not force:
             raise errors.UncommitedChangesError()
 
         if not self.drive.is_exist(commit_path):
@@ -125,10 +144,10 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         self.__load_commit_data(commit_id)
 
-    def checkout_to_tag(self, name: str) -> None:
+    def checkout_to_tag(self, name: str, force: bool) -> None:
         tag_path = path.join('refs', 'tags', name)
 
-        if self.drive.is_exist(self.index_path):
+        if self.drive.is_exist(self.index_path) and not force:
             raise errors.UncommitedChangesError()
 
         if not self.drive.is_exist(path.join('.kit', tag_path)):
@@ -138,10 +157,10 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         self.__load_commit_data(commit_id)
 
-    def checkout_to_branch(self, name: str) -> None:
+    def checkout_to_branch(self, name: str, force: bool) -> None:
         branch_path = path.join('refs', 'heads', name)
 
-        if self.drive.is_exist(self.index_path):
+        if self.drive.is_exist(self.index_path) and not force:
             raise errors.UncommitedChangesError()
 
         if not self.drive.is_exist(path.join('.kit', branch_path)):
@@ -151,31 +170,22 @@ class VersionControl:
         self.drive.write(path.join('.kit', 'HEAD'), branch_path)
         self.__load_commit_data(commit_id)
 
-    def checkout(self, name: str) -> None:
+    def checkout(self, name: str, force: bool) -> None:
         tag_path = path.join('refs', 'tags', name)
         branch_path = path.join('refs', 'heads', name)
         commit_path = path.join('.kit', "objects", name[:2], name[2:])
 
-        if self.drive.is_exist(self.index_path):
+        if self.drive.is_exist(self.index_path) and not force:
             raise errors.UncommitedChangesError()
 
         if self.drive.is_exist(path.join('.kit', branch_path)):
-            self.checkout_to_branch(name)
+            self.checkout_to_branch(name, force)
         elif self.drive.is_exist(path.join('.kit', tag_path)):
-            self.checkout_to_tag(name)
+            self.checkout_to_tag(name, force)
         elif self.drive.is_exist(commit_path):
-            self.checkout_to_commit(name)
+            self.checkout_to_commit(name, force)
         else:
             raise errors.CheckoutError(f"Commit/branch/tag with name {name} does not exist")
-
-    def log(self) -> (str, str, str, str):
-        name = self.current_id
-
-        while name != 'None':
-            user, date, description, _, parent = self.drive.read(
-                path.join('.kit', "objects", name[:2], name[2:])).split('\n')
-            yield name, user, date, description
-            name = parent
 
     def __load_commit_data(self, commit_id: str) -> None:
         self.head = self.drive.get_head()
