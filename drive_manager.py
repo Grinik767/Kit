@@ -66,7 +66,7 @@ class DriveManager:
         with open(os.path.join(self.repo_path, 'objects', commit_id[:2], commit_id[2:]), 'w') as commit:
             commit.write(f"{username}\n{datetime}\n{description}\n{tree}\n{parent}")
 
-    def calculate_index_data(self, local_path: str, prev_tree_hash: str, seed: int):
+    def calculate_index_data(self, local_path: str, prev_tree_hash: str, seed: int, is_add: bool = True):
         file_path = os.path.join(self.workspace_path, local_path)
         if not path.isdir(file_path):
             rel_path = path.relpath(file_path, start=self.workspace_path)
@@ -76,10 +76,15 @@ class DriveManager:
             if path.exists(path.join(prev_tree_path, rel_path)):
                 with open(path.join(prev_tree_path, rel_path), 'r') as f:
                     prev_filehash = f.read().strip()
-            if prev_filehash is None or prev_filehash != filehash:
-                self.index_hashes[rel_path] = (filehash, True)
-            elif prev_filehash == filehash and rel_path in self.index_hashes:
-                del self.index_hashes[rel_path]
+            if is_add:
+                if rel_path in self.index_hashes and not self.index_hashes[rel_path][1]:
+                    return
+                if prev_filehash is None or prev_filehash != filehash:
+                    self.index_hashes[rel_path] = (filehash, True)
+                elif prev_filehash == filehash and rel_path in self.index_hashes:
+                    del self.index_hashes[rel_path]
+            elif not is_add and prev_filehash is not None:
+                self.index_hashes[rel_path] = (filehash, False)
             return
 
         for root, _, files in os.walk(file_path):

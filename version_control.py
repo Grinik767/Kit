@@ -34,6 +34,12 @@ class VersionControl:
         self.drive.write_index_data()
         self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
+    def remove(self, local_path: str) -> None:
+        self.drive.calculate_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id),
+                                        self.seed, False)
+        self.drive.write_index_data()
+
+    '''
     def remove(self, local_path: str = None) -> None:
         index_path = path.join('.kit', 'INDEX')
 
@@ -58,6 +64,7 @@ class VersionControl:
             self.drive.remove(index_path)
         else:
             self.drive.write(index_path, '\n'.join(new_data))
+    '''
 
     def commit(self, description: str) -> None:
         if path.exists(path.join(self.repo_path, 'objects', self.head[:2], self.head[2:])):
