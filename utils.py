@@ -41,9 +41,17 @@ class Utils:
         cur_hash = xxh3_128('kit', seed=seed)
         with open(index_path, 'r') as f:
             for line in f:
-                local_path, file_hash = line.split(',')
+                local_path, file_hash, diff_type = line.split(',')
                 cur_hash.update(file_hash.strip())
         return cur_hash
+
+    @staticmethod
+    def bool_to_sign(value: bool) -> str:
+        return "+" if value else "-"
+
+    @staticmethod
+    def sign_to_bool(value: str) -> bool:
+        return True if value == '+' else False
 
     @staticmethod
     def __get_relative_paths(dir_path):

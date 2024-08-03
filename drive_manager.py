@@ -32,7 +32,7 @@ class DriveManager:
         if path.exists(prev_tree_path):
             copy_tree(prev_tree_path, hash_folder)
         for filepath in self.index_hashes:
-            file_hash = self.index_hashes[filepath]
+            file_hash = self.index_hashes[filepath][0]
             folder_name = path.split(filepath)[:-1][0]
             folder_path = path.join(hash_folder, folder_name)
             if folder_name:
@@ -51,7 +51,7 @@ class DriveManager:
 
     def save_files_from_index(self):
         for filepath in self.index_hashes:
-            self.save_file(filepath, self.index_hashes[filepath])
+            self.save_file(filepath, self.index_hashes[filepath][0])
 
     def write(self, local_path, data):
         with open(os.path.join(self.workspace_path, local_path), 'w') as file:
@@ -77,7 +77,7 @@ class DriveManager:
                 with open(path.join(prev_tree_path, rel_path), 'r') as f:
                     prev_filehash = f.read().strip()
             if prev_filehash is None or prev_filehash != filehash:
-                self.index_hashes[rel_path] = filehash
+                self.index_hashes[rel_path] = (filehash, True)
             elif prev_filehash == filehash and rel_path in self.index_hashes:
                 del self.index_hashes[rel_path]
             return
@@ -91,7 +91,9 @@ class DriveManager:
     def write_index_data(self):
         with open(self.index_path, 'w') as f:
             for filepath in self.index_hashes:
-                f.write(f"{filepath},{self.index_hashes[filepath]}\n")
+                f.write(
+                    f"{filepath},{self.index_hashes[filepath][0]},"
+                    f"{Utils.bool_to_sign(self.index_hashes[filepath][1])}\n")
 
     def load_tree_files(self, tree_hash: str):
         if not tree_hash:
@@ -126,8 +128,8 @@ class DriveManager:
             return result
         with open(self.index_path, 'r') as f:
             for line in f:
-                filepath, filehash = line.split(',')
-                result[filepath] = filehash.strip()
+                filepath, filehash, diff_type = line.split(',')
+                result[filepath] = (filehash.strip(), Utils.sign_to_bool(diff_type))
         return result
 
     def initialize_directories(self):
