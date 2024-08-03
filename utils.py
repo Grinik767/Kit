@@ -72,3 +72,7 @@ class Utils:
         added_files = dir2_files - dir1_files
 
         return added_files, removed_files
+
+    @staticmethod
+    def parse_from_str_to_os_path(string_path: str):
+        return path.join(*string_path.split('/'))
