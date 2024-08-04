@@ -56,53 +56,66 @@ def commit(ctx, message):
 
 
 @click.command()
-@click.argument('name')
+@click.argument('name', required=False)
+@click.option('-a', '--all', is_flag=True, help="Tag message")
+@click.option('-b', '--branch', is_flag=True, help="Checkout to branch after creating")
 @click.option('-d', '--delete', is_flag=True, help="Delete the specified branch")
+@click.option('--show-current', is_flag=True, help="Show current branch")
 @click.pass_context
-def branch(ctx, name, delete):
+def branch(ctx, name, all, branch, delete, show_current):
     """Create or manage branches"""
     vcs = ctx.obj['vcs']
+
+    if all:
+        for info in vcs.branches_list():
+            click.echo(f'\tName: {info}')
+        return
+
+    if show_current:
+        click.echo(f'\tCurrent branch: {vcs.current_branch()}')
+        return
+
+    if not name:
+        raise click.UsageError("The [NAME] argument is required when using this option.")
+
     if delete:
         vcs.remove_branch(name)
         click.echo(f'\tBranch with name {name} deleted.')
-    else:
-        vcs.create_branch(name)
-        click.echo(f'\tBranch with name {name} created.')
+        return
+
+    vcs.create_branch(name)
+    click.echo(f'\tBranch with name {name} created.')
+
+    if branch:
+        vcs.checkout_to_branch(name, True)
+        click.echo(f'\tChecked out to {name}.')
 
 
 @click.command()
-@click.pass_context
-def branches(ctx):
-    """Get all branches"""
-    vcs = ctx.obj['vcs']
-    for info in vcs.branches_list():
-        click.echo(f'\tName: {info}')
-
-
-@click.command()
-@click.argument('name')
+@click.argument('name', required=False)
+@click.option('-a', '--all', is_flag=True, help="Tag message")
 @click.option('-d', '--delete', is_flag=True, help="Delete the specified branch")
 @click.option('-m', '--message', required=False, help="Tag message")
 @click.pass_context
-def tag(ctx, name, delete, message):
+def tag(ctx, name, all, delete, message):
     """Create or manage tags"""
     vcs = ctx.obj['vcs']
+
+    if all:
+        for info in vcs.tags_list():
+            info = info.split('\n')
+            click.echo(f'\tName: {info[0]}; User: {info[1]}; Date: {info[2]}; Message: {info[3]}')
+        return
+
+    if not name:
+        raise click.UsageError("The [NAME] argument is required when using this option.")
+
     if delete:
         vcs.remove_tag(name)
         click.echo(f'\tTag with name {name} deleted.')
     else:
         vcs.create_tag(name, message)
         click.echo(f'\tTag with name {name} created.')
-
-
-@click.command()
-@click.pass_context
-def tags(ctx):
-    """Get all tags"""
-    vcs = ctx.obj['vcs']
-    for info in vcs.tags_list():
-        info = info.split('\n')
-        click.echo(f'\tName: {info[0]}; User: {info[1]}; Date: {info[2]}; Message: {info[3]}')
 
 
 @click.command()
@@ -125,7 +138,7 @@ def checkout(ctx, name, branch, tag, commit, force):
     else:
         vcs.checkout(name, force)
 
-    click.echo(f'\tChecked out to {name}')
+    click.echo(f'\tChecked out to {name}.')
 
 
 @click.command()
@@ -140,8 +153,9 @@ def index(ctx):
 
 @click.command()
 @click.option('-p', '--patch', is_flag=True, help="Show commits difference")
+@click.option('-n', '--number', default=None, type=int, help="Number of commits to show")
 @click.pass_context
-def log(ctx, patch):
+def log(ctx, patch, number):
     """Show commit logs"""
     vcs = ctx.obj['vcs']
 
@@ -150,14 +164,20 @@ def log(ctx, patch):
     click.echo(f'\n\tCommit: {previous_commit[0]}; User: {previous_commit[1]}; Date: {previous_commit[2]}; '
                f''f'Message: 'f'{previous_commit[3]}')
 
+    count = 1
     for current_commit in commits:
+        if number is not None and count >= number:
+            break
+
         if patch:
             for line in vcs.commits_diff(current_commit[0], previous_commit[0]):
                 sign, file = line.split(';')
                 click.echo(f'\t\t{3 * sign} {file}')
+
         click.echo(f'\n\tCommit: {current_commit[0]}; User: {current_commit[1]}; Date: {current_commit[2]}; '
                    f'Message: {current_commit[3]}')
         previous_commit = current_commit
+        count += 1
 
 
 main.add_command(init)
@@ -165,9 +185,7 @@ main.add_command(add)
 main.add_command(remove)
 main.add_command(commit)
 main.add_command(branch)
-main.add_command(branches)
 main.add_command(tag)
-main.add_command(tags)
 main.add_command(checkout)
 main.add_command(index)
 main.add_command(log)
@@ -176,4 +194,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        click.echo(f'\t{e}')
+        click.echo(e)

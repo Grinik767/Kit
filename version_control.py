@@ -117,6 +117,10 @@ class VersionControl:
     @Utils.check_repository_exists
     def remove_branch(self, name: str) -> None:
         branch_path = path.join('.kit', 'refs', 'heads', name)
+        current_branch = path.basename(self.head)
+
+        if current_branch == name:
+            self.drive.write(path.join('.kit', 'HEAD'), self.current_id)
 
         if self.drive.is_exist(branch_path):
             self.drive.remove(branch_path)
@@ -206,6 +210,15 @@ class VersionControl:
             self.checkout_to_commit(name, force)
         else:
             raise errors.CheckoutError(f"Commit/branch/tag with name {name} does not exist")
+
+    def current_commit(self) -> str:
+        return self.current_commit_id
+
+    def current_branch(self) -> str:
+        if self.drive.is_exist(path.join('.kit', "objects", self.head[:2], self.head[2:])):
+            raise errors.NotOnBranchError("You are not on a branch")
+
+        return path.basename(self.head)
 
     def __load_commit_data(self, commit_id: str) -> None:
         self.head = self.drive.get_head()
