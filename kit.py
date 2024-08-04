@@ -57,7 +57,7 @@ def commit(ctx, message):
 
 @click.command()
 @click.argument('name', required=False)
-@click.option('-a', '--all', is_flag=True, help="Tag message")
+@click.option('-a', '--all', is_flag=True, help="Show all branches")
 @click.option('-b', '--branch', is_flag=True, help="Checkout to branch after creating")
 @click.option('-d', '--delete', is_flag=True, help="Delete the specified branch")
 @click.option('--show-current', is_flag=True, help="Show current branch")
@@ -93,8 +93,8 @@ def branch(ctx, name, all, branch, delete, show_current):
 
 @click.command()
 @click.argument('name', required=False)
-@click.option('-a', '--all', is_flag=True, help="Tag message")
-@click.option('-d', '--delete', is_flag=True, help="Delete the specified branch")
+@click.option('-a', '--all', is_flag=True, help="Show all tags")
+@click.option('-d', '--delete', is_flag=True, help="Delete the specified tag")
 @click.option('-m', '--message', required=False, help="Tag message")
 @click.pass_context
 def tag(ctx, name, all, delete, message):
