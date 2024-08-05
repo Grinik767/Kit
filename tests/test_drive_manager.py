@@ -270,6 +270,14 @@ def test_calculate_index_data_file_not_in_prev_tree(drive_manager: DriveManager,
     assert drive_manager.index_hashes == {filepath: ('filehash', True)}
 
 
+def test_calculate_index_data_dot_path(drive_manager, mocker: MockerFixture):
+    mocker.patch('utils.Utils.check_for_dot_path', return_value=True)
+
+    drive_manager.calculate_index_data(Utils.parse_from_str_to_os_path('local/path'), 'p1e2v3h4a5s6', 42)
+
+    mocker.patch('drive_manager.path.isdir').assert_not_called()
+
+
 def test_calculate_index_data_file_differs_in_prev_tree(drive_manager: DriveManager,
                                                         calculate_index_mock: (
                                                                 MockerFixture, MockerFixture, MockerFixture,
@@ -416,3 +424,11 @@ def test_delete_tree_files_no_tree_hash(drive_manager: DriveManager, mocker: Moc
     drive_manager.delete_tree_files('')
     mock_walk = mocker.patch('drive_manager.walk', return_value=[])
     mock_walk.assert_not_called()
+
+
+def test_commit_to_tree(drive_manager: DriveManager, mocker: MockerFixture):
+    mocker_read = mocker.patch.object(drive_manager, 'read')
+
+    drive_manager.commit_to_tree('a1b2c3')
+
+    mocker_read.assert_called_once_with(Utils.parse_from_str_to_os_path('.kit/objects/a1/b2c3'))

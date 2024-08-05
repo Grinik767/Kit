@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from os import path, walk, remove, rmdir, makedirs
 from xxhash import xxh3_128
@@ -108,3 +109,9 @@ class Utils:
     @staticmethod
     def parse_from_str_to_os_path(string_path: str):
         return path.join(*string_path.split('/'))
+
+    @staticmethod
+    def check_for_dot_path(filepath: str):
+        if path.isfile(filepath):
+            return any(p.startswith('.') for p in filepath.split(os.sep)[:-1])
+        return any(p.startswith('.') for p in filepath.split(os.sep))
