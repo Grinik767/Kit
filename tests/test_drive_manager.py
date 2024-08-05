@@ -1,5 +1,4 @@
 from pytest_mock import MockerFixture
-
 from utils import *
 import platform
 from drive_manager import DriveManager
@@ -9,6 +8,24 @@ from drive_manager import DriveManager
 def drive_manager(mocker: MockerFixture):
     mocker.patch("os.makedirs")
     return DriveManager(workspace_path=Utils.parse_from_str_to_os_path('/fake/workspace'))
+
+
+@pytest.fixture
+def calculate_index_mock(mocker: MockerFixture):
+    mock_isdir = mocker.patch('os.path.isdir')
+    mock_exists = mocker.patch('os.path.exists')
+    mock_open_fn = mocker.patch('builtins.open', mocker.mock_open())
+    mock_hash = mocker.patch('utils.Utils.get_file_hash', return_value=mocker.Mock(hexdigest=lambda: 'filehash'))
+    mock_walk = mocker.patch('os.walk')
+    return mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk
+
+
+@pytest.fixture
+def save_tree_mock(mocker: MockerFixture):
+    mock_makedirs = mocker.patch('os.makedirs')
+    mock_exists = mocker.patch('os.path.exists', return_value=True)
+    mock_copy_tree = mocker.patch('drive_manager.copy_tree')
+    return mock_makedirs, mock_exists, mock_copy_tree
 
 
 def test_save_file(drive_manager: DriveManager, mocker: MockerFixture):
@@ -169,23 +186,40 @@ def test_remove(drive_manager: DriveManager, mocker: MockerFixture):
     mock_remove.assert_called_once_with(Utils.parse_from_str_to_os_path('/fake/workspace/local/path'))
 
 
-def test_save_tree(drive_manager: DriveManager, mocker: MockerFixture):
-    mock_makedirs = mocker.patch('os.makedirs')
-    mock_exists = mocker.patch('os.path.exists', return_value=True)
-    mock_copy_tree = mocker.patch('drive_manager.copy_tree')
+def test_save_tree_add(drive_manager: DriveManager, save_tree_mock: (MockerFixture, MockerFixture, MockerFixture),
+                       mocker: MockerFixture):
+    mock_makedirs, mock_exists, mock_copy_tree = save_tree_mock
     mock_open = mocker.patch('builtins.open', mocker.mock_open())
 
-    drive_manager.index_hashes = {'filepath': ('filehash', True)}
+    drive_manager.index_hashes = {'filepath/file': ('filehash', True)}
     drive_manager.save_tree('a1b2c3d4e5f6', 'p1e2v3h4a5s6')
 
-    mock_makedirs.assert_called_once_with(Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6'),
-                                          exist_ok=True)
+    mock_makedirs.assert_called_with(
+        Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6/filepath'), exist_ok=True)
     mock_exists.assert_called_once_with(Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/p1/e2v3h4a5s6'))
     mock_copy_tree.assert_called_once_with(
         Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/p1/e2v3h4a5s6'),
         Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6'))
     mock_open.assert_called_once_with(
-        Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6/filepath'), 'w')
+        Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6/filepath/file'), 'w')
+
+
+def test_save_tree_remove(drive_manager: DriveManager, save_tree_mock: (MockerFixture, MockerFixture, MockerFixture),
+                          mocker: MockerFixture):
+    mock_makedirs, mock_exists, mock_copy_tree = save_tree_mock
+    mock_remove = mocker.patch('drive_manager.remove')
+
+    drive_manager.index_hashes = {'filepath/file': ('filehash', False)}
+    drive_manager.save_tree('a1b2c3d4e5f6', 'p1e2v3h4a5s6')
+
+    mock_makedirs.assert_called_with(
+        Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6/filepath'), exist_ok=True)
+    mock_exists.assert_called_once_with(Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/p1/e2v3h4a5s6'))
+    mock_copy_tree.assert_called_once_with(
+        Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/p1/e2v3h4a5s6'),
+        Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6'))
+    mock_remove.assert_called_once_with(
+        Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6/filepath/file'))
 
 
 def test_save_files_from_index(drive_manager: DriveManager, mocker: MockerFixture):
@@ -197,17 +231,105 @@ def test_save_files_from_index(drive_manager: DriveManager, mocker: MockerFixtur
     mock_save_file.assert_called_once_with('filepath', 'filehash')
 
 
-def test_calculate_index_data(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.isdir', return_value=False)
-    mocker.patch('drive_manager.path.exists', return_value=False)
-    mock_hash = mocker.patch('utils.Utils.get_file_hash', return_value=mocker.Mock(hexdigest=lambda: 'filehash'))
+def test_calculate_index_data_file_not_in_prev_tree(drive_manager: DriveManager,
+                                                    calculate_index_mock: (
+                                                            MockerFixture, MockerFixture, MockerFixture, MockerFixture,
+                                                            MockerFixture)):
+    mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk = calculate_index_mock
+    mock_isdir.return_value = False
+    mock_exists.return_value = False
 
     filepath = Utils.parse_from_str_to_os_path('local/path')
     drive_manager.calculate_index_data(filepath, 'p1e2v3h4a5s6', 42)
 
     mock_hash.assert_called_once_with(Utils.parse_from_str_to_os_path('fake/workspace/local/path'),
-                                      Utils.parse_from_str_to_os_path('fake/workspace'), 42)
+                                      drive_manager.workspace_path, 42)
     assert drive_manager.index_hashes == {filepath: ('filehash', True)}
+
+
+def test_calculate_index_data_file_differs_in_prev_tree(drive_manager: DriveManager,
+                                                        calculate_index_mock: (
+                                                                MockerFixture, MockerFixture, MockerFixture,
+                                                                MockerFixture, MockerFixture)):
+    mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk = calculate_index_mock
+    mock_isdir.return_value = False
+    mock_exists.side_effect = [True, False]
+    mock_open_fn.return_value.read.return_value = 'different_hash'
+
+    filepath = Utils.parse_from_str_to_os_path('local/path')
+    drive_manager.calculate_index_data(filepath, 'p1e2v3h4a5s6', 42)
+
+    mock_hash.assert_called_once_with(Utils.parse_from_str_to_os_path('fake/workspace/local/path'),
+                                      drive_manager.workspace_path, 42)
+    assert drive_manager.index_hashes == {filepath: ('filehash', True)}
+
+
+def test_calculate_index_data_file_same_in_prev_tree(drive_manager: DriveManager,
+                                                     calculate_index_mock: (
+                                                             MockerFixture, MockerFixture, MockerFixture,
+                                                             MockerFixture, MockerFixture)):
+    mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk = calculate_index_mock
+    mock_isdir.return_value = False
+    mock_exists.side_effect = [True, True]
+    mock_open_fn.return_value.read.return_value = 'filehash'
+
+    filepath = Utils.parse_from_str_to_os_path('local/path')
+    drive_manager.calculate_index_data(filepath, 'p1e2v3h4a5s6', 42)
+
+    mock_hash.assert_called_once_with(Utils.parse_from_str_to_os_path('fake/workspace/local/path'),
+                                      drive_manager.workspace_path, 42)
+    assert drive_manager.index_hashes == {}
+
+
+def test_calculate_index_data_remove_file(drive_manager: DriveManager,
+                                          calculate_index_mock: (
+                                                  MockerFixture, MockerFixture, MockerFixture,
+                                                  MockerFixture, MockerFixture)):
+    mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk = calculate_index_mock
+    mock_isdir.return_value = False
+    mock_exists.side_effect = [True, True]
+    mock_open_fn.return_value.read.return_value = 'filehash'
+
+    filepath = Utils.parse_from_str_to_os_path('local/path')
+    drive_manager.index_hashes[filepath] = ('filehash', True)
+    drive_manager.calculate_index_data(filepath, 'p1e2v3h4a5s6', 42, is_add=False)
+
+    mock_hash.assert_called_once_with(Utils.parse_from_str_to_os_path('fake/workspace/local/path'),
+                                      drive_manager.workspace_path, 42)
+    assert drive_manager.index_hashes == {filepath: ('filehash', False)}
+
+
+def test_calculate_index_data_remove_nonexistent_file(drive_manager: DriveManager,
+                                                      calculate_index_mock: (
+                                                              MockerFixture, MockerFixture, MockerFixture,
+                                                              MockerFixture, MockerFixture)):
+    mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk = calculate_index_mock
+    mock_isdir.return_value = False
+    mock_exists.return_value = False
+
+    filepath = Utils.parse_from_str_to_os_path('local/path')
+    drive_manager.index_hashes[filepath] = ('filehash', True)
+    drive_manager.calculate_index_data(filepath, 'p1e2v3h4a5s6', 42, is_add=False)
+
+    assert filepath not in drive_manager.index_hashes
+
+
+def test_calculate_index_data_same_as_prev_but_dif_in_index(drive_manager: DriveManager,
+                                                            calculate_index_mock: (
+                                                                    MockerFixture, MockerFixture, MockerFixture,
+                                                                    MockerFixture, MockerFixture)):
+    mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk = calculate_index_mock
+    mock_isdir.return_value = False
+    mock_exists.side_effect = [True, True]
+    mock_open_fn.return_value.read.return_value = 'filehash'
+
+    filepath = Utils.parse_from_str_to_os_path('local/path')
+    drive_manager.index_hashes[filepath] = ('dif_filehash', True)
+    drive_manager.calculate_index_data(filepath, 'p1e2v3h4a5s6', 42, is_add=True)
+
+    mock_hash.assert_called_once_with(Utils.parse_from_str_to_os_path('fake/workspace/local/path'),
+                                      drive_manager.workspace_path, 42)
+    assert filepath not in drive_manager.index_hashes
 
 
 def test_write_index_data(drive_manager: DriveManager, mocker: MockerFixture):
