@@ -150,14 +150,7 @@ class VersionControl:
     @Utils.check_repository_exists
     def checkout_to_commit(self, name: str, force: bool) -> None:
         commit_path = path.join('.kit', "objects", name[:2], name[2:])
-
-        if self.drive.is_exist(self.index_path) and not force:
-            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
-                                                "commit or discard them before switching branches, tags, or commits.")
-
-        if not self.drive.is_exist(commit_path):
-            raise errors.CheckoutError(f"Commit with name {name} does not exist")
-
+        self.__check_checkout_possibility('Commit', force, commit_path, name)
         commit_id = name
         self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         self.__load_commit_data(commit_id)
@@ -165,14 +158,7 @@ class VersionControl:
     @Utils.check_repository_exists
     def checkout_to_tag(self, name: str, force: bool) -> None:
         tag_path = path.join('refs', 'tags', name)
-
-        if self.drive.is_exist(self.index_path) and not force:
-            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
-                                                "commit or discard them before switching branches, tags, or commits.")
-
-        if not self.drive.is_exist(path.join('.kit', tag_path)):
-            raise errors.CheckoutError(f"Tag with name {name} does not exist")
-
+        self.__check_checkout_possibility('Tag', force, tag_path, name)
         commit_id = self.drive.read(path.join('.kit', tag_path)).split()[-1]
         self.drive.write(path.join('.kit', 'HEAD'), commit_id)
         self.__load_commit_data(commit_id)
@@ -180,14 +166,7 @@ class VersionControl:
     @Utils.check_repository_exists
     def checkout_to_branch(self, name: str, force: bool) -> None:
         branch_path = path.join('refs', 'heads', name)
-
-        if self.drive.is_exist(self.index_path) and not force:
-            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
-                                                "commit or discard them before switching branches, tags, or commits.")
-
-        if not self.drive.is_exist(path.join('.kit', branch_path)):
-            raise errors.CheckoutError(f"Branch with name {name} does not exist")
-
+        self.__check_checkout_possibility('Branch', force, branch_path, name)
         commit_id = self.drive.read(path.join('.kit', branch_path))
         self.drive.write(path.join('.kit', 'HEAD'), branch_path)
         self.__load_commit_data(commit_id)
@@ -225,6 +204,14 @@ class VersionControl:
         self.drive.delete_tree_files(self.drive.get_commit_tree_hash(self.current_id))
         self.drive.load_tree_files(self.drive.get_commit_tree_hash(commit_id))
         self.current_id = commit_id
+
+    def __check_checkout_possibility(self, checkout_type, force, checkout_path, name) -> None:
+        if self.drive.is_exist(self.index_path) and not force:
+            raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
+                                                "commit or discard them before switching branches, tags, or commits.")
+
+        if not self.drive.is_exist(path.join('.kit', checkout_path)):
+            raise errors.CheckoutError(f"{checkout_type} with name {name} does not exist")
 
 
 if __name__ == '__main__':
