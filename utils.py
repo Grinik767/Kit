@@ -100,3 +100,7 @@ class Utils:
                 changed_files.add(file)
 
         return added_files, removed_files, changed_files
+
+    @staticmethod
+    def parse_from_str_to_os_path(string_path: str):
+        return path.join(*string_path.split('/'))

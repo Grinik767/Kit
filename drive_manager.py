@@ -125,7 +125,6 @@ class DriveManager:
             for file in files:
                 with open(path.join(root, file), 'r') as f:
                     filehash = f.read().strip()
-
                 self.load_file(filehash, path.join(self.workspace_path, rel_path, file))
 
     def delete_tree_files(self, tree_hash: str):
@@ -207,7 +206,7 @@ class DriveManager:
 
     def delete_if_empty_file(self, local_path: str):
         full_path = path.join(self.workspace_path, local_path)
-        if path.getsize(full_path) == 0:
+        if path.exists(full_path) and path.getsize(full_path) == 0:
             remove(full_path)
 
     def get_files_in_dir(self, local_path: str):
