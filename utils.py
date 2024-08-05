@@ -4,6 +4,10 @@ from xxhash import xxh3_128
 import errors
 from distutils.dir_util import copy_tree
 import pytest
+from pytest_mock import MockerFixture
+import lzma
+import subprocess
+import platform
 
 
 class Utils:
