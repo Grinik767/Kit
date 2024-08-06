@@ -1,7 +1,5 @@
 from drive_manager import DriveManager
 from utils import *
-from random import randint
-from datetime import datetime
 
 
 class VersionControl:

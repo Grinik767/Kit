@@ -67,8 +67,8 @@ class DriveManager:
         with open(path.join(self.workspace_path, local_path), 'r') as file:
             return file.read()
 
-    def write_commit_data(self, commit_id: str, username: str, commit_dt: str, description: str, tree: str,
-                          parent: str) -> None:
+    def write_commit_data(self, commit_id: str, username: str, commit_dt: str | datetime, description: str, tree: str,
+                          parent: str | None) -> None:
         makedirs(path.join(self.repo_path, 'objects', commit_id[:2]), exist_ok=True)
         with open(path.join(self.repo_path, 'objects', commit_id[:2], commit_id[2:]), 'w') as commit:
             commit.write(f"{username}\n{commit_dt}\n{description}\n{tree}\n{parent}")

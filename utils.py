@@ -1,8 +1,10 @@
 import lzma
 import platform
 import subprocess
+from datetime import datetime
 from distutils.dir_util import copy_tree
 from os import makedirs, path, remove, rmdir, sep, walk
+from random import randint
 
 import pytest
 from pytest_mock import MockerFixture
