@@ -1,5 +1,5 @@
-from utils import *
 from drive_manager import DriveManager
+from utils import *
 
 
 @pytest.fixture

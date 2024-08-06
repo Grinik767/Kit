@@ -1,14 +1,14 @@
-import os
-from abc import ABC, abstractmethod
-from os import path, walk, remove, rmdir, makedirs
-from xxhash import xxh3_128
-import errors
+import lzma
+import platform
+import subprocess
 from distutils.dir_util import copy_tree
+from os import makedirs, path, remove, rmdir, sep, walk
+
 import pytest
 from pytest_mock import MockerFixture
-import lzma
-import subprocess
-import platform
+from xxhash import xxh3_128
+
+import errors
 
 
 class Utils:
@@ -22,7 +22,7 @@ class Utils:
         return wrapper
 
     @staticmethod
-    def get_tree_diff(tree1_path, tree2_path):
+    def get_tree_diff(tree1_path: str, tree2_path: str) -> list[str]:
         result = []
         added_files, removed_files, changed_files = Utils.__compare_trees(tree1_path, tree2_path)
 
@@ -70,7 +70,7 @@ class Utils:
         return True if value == '+' else False
 
     @staticmethod
-    def __get_relative_paths(dir_path):
+    def __get_relative_paths(dir_path: str) -> set[str]:
         relative_paths = set()
 
         for root, _, files in walk(dir_path):
@@ -82,12 +82,12 @@ class Utils:
         return relative_paths
 
     @staticmethod
-    def __read_file_content(file_path: str):
+    def __read_file_content(file_path: str) -> bytes:
         with open(file_path, 'rb') as file:
             return file.read()
 
     @staticmethod
-    def __compare_trees(tree1, tree2):
+    def __compare_trees(tree1: str, tree2: str) -> (set[str], set[str], set[str]):
         dir1_files = Utils.__get_relative_paths(tree1)
         dir2_files = Utils.__get_relative_paths(tree2)
 
@@ -95,8 +95,8 @@ class Utils:
         added_files = dir2_files - dir1_files
 
         common_files = dir1_files & dir2_files
-        changed_files = set()
 
+        changed_files = set()
         for file in common_files:
             file1 = path.join(tree1, file)
             file2 = path.join(tree2, file)
@@ -111,7 +111,7 @@ class Utils:
         return path.join(*string_path.split('/'))
 
     @staticmethod
-    def check_for_dot_path(filepath: str):
+    def check_for_dot_path(filepath: str) -> bool:
         if path.isfile(filepath):
-            return any(p.startswith('.') for p in filepath.split(os.sep)[:-1])
-        return any(p.startswith('.') for p in filepath.split(os.sep))
+            return any(p.startswith('.') for p in filepath.split(sep)[:-1])
+        return any(p.startswith('.') for p in filepath.split(sep))
