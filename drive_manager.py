@@ -75,7 +75,7 @@ class DriveManager:
 
     def calculate_index_data(self, local_path: str, prev_tree_hash: str, seed: int, is_add: bool = True) -> None:
         file_path = path.join(self.workspace_path, local_path)
-        if Utils.check_for_dot_path(file_path):
+        if local_path != "." and Utils.check_for_dot_path(file_path):
             return
         if not path.isdir(file_path):
             rel_path = path.relpath(file_path, start=self.workspace_path)
