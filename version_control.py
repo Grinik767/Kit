@@ -44,7 +44,7 @@ class VersionControl:
         self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
 
     @Utils.check_repository_exists
-    def index(self) -> None:
+    def index(self) -> str:
         if not self.drive.is_exist(self.index_path):
             return
 
