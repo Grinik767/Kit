@@ -147,7 +147,7 @@ class VersionControl:
 
     @Utils.check_repository_exists
     def checkout_to_commit(self, name: str, force: bool) -> None:
-        commit_path = path.join('.kit', "objects", name[:2], name[2:])
+        commit_path = path.join("objects", name[:2], name[2:])
         self.__check_checkout_possibility('Commit', force, commit_path, name)
         commit_id = name
         self.drive.write(path.join('.kit', 'HEAD'), commit_id)
@@ -201,7 +201,7 @@ class VersionControl:
         self.drive.load_tree_files(self.drive.get_commit_tree_hash(commit_id))
         self.current_id = commit_id
 
-    def __check_checkout_possibility(self, checkout_type, force, checkout_path, name) -> None:
+    def __check_checkout_possibility(self, checkout_type: str, force: bool, checkout_path, name) -> None:
         if self.drive.is_exist(self.index_path) and not force:
             raise errors.UncommitedChangesError("You have uncommitted changes in your working directory. ""Please "
                                                 "commit or discard them before switching branches, tags, or commits.")
