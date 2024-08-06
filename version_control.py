@@ -190,9 +190,7 @@ class VersionControl:
         else:
             raise errors.CheckoutError(f"Commit/branch/tag with name {name} does not exist")
 
-    def current_commit(self) -> str:
-        return self.current_commit_id
-
+    @Utils.check_repository_exists
     def current_branch(self) -> str:
         if self.drive.is_exist(path.join('.kit', "objects", self.head[:2], self.head[2:])):
             raise errors.NotOnBranchError("You are not on a branch")
