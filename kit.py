@@ -3,7 +3,7 @@
 import click
 from os import path
 from getpass import getuser
-from version_control import VersionControl
+from kit_vcs.version_control import VersionControl
 
 
 @click.group()

@@ -1,5 +1,5 @@
-from drive_manager import DriveManager
-from utils import *
+from kit_vcs.drive_manager import DriveManager
+from kit_vcs.utils import *
 
 
 class VersionControl:

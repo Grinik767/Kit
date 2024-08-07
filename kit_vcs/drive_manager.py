@@ -1,4 +1,4 @@
-from utils import *
+from kit_vcs.utils import *
 
 
 class DriveManager:

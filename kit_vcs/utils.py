@@ -10,7 +10,7 @@ import pytest
 from pytest_mock import MockerFixture
 from xxhash import xxh3_128
 
-import errors
+import kit_vcs.errors as errors
 
 
 class Utils:

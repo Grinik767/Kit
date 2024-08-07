@@ -1,28 +1,28 @@
-from drive_manager import DriveManager
-from utils import *
+from kit_vcs.drive_manager import DriveManager
+from kit_vcs.utils import *
 
 
 @pytest.fixture
 def drive_manager(mocker: MockerFixture):
-    mocker.patch("drive_manager.makedirs")
+    mocker.patch("kit_vcs.drive_manager.makedirs")
     return DriveManager(workspace_path=Utils.parse_from_str_to_os_path('/fake/workspace'))
 
 
 @pytest.fixture
 def calculate_index_mock(mocker: MockerFixture):
-    mock_isdir = mocker.patch('drive_manager.path.isdir')
-    mock_exists = mocker.patch('drive_manager.path.exists')
+    mock_isdir = mocker.patch('kit_vcs.drive_manager.path.isdir')
+    mock_exists = mocker.patch('kit_vcs.drive_manager.path.exists')
     mock_open_fn = mocker.patch('builtins.open', mocker.mock_open())
-    mock_hash = mocker.patch('utils.Utils.get_file_hash', return_value=mocker.Mock(hexdigest=lambda: 'filehash'))
-    mock_walk = mocker.patch('drive_manager.walk')
+    mock_hash = mocker.patch('kit_vcs.utils.Utils.get_file_hash', return_value=mocker.Mock(hexdigest=lambda: 'filehash'))
+    mock_walk = mocker.patch('kit_vcs.drive_manager.walk')
     return mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk
 
 
 @pytest.fixture
 def save_tree_mock(mocker: MockerFixture):
-    mock_makedirs = mocker.patch('drive_manager.makedirs')
-    mock_exists = mocker.patch('drive_manager.path.exists', return_value=True)
-    mock_copy_tree = mocker.patch('drive_manager.copy_tree')
+    mock_makedirs = mocker.patch('kit_vcs.drive_manager.makedirs')
+    mock_exists = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
+    mock_copy_tree = mocker.patch('kit_vcs.drive_manager.copy_tree')
     return mock_makedirs, mock_exists, mock_copy_tree
 
 
@@ -76,7 +76,7 @@ def test_write_commit_data(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_initialize_directories(drive_manager: DriveManager, mocker: MockerFixture):
-    mock_makedirs = mocker.patch('drive_manager.makedirs')
+    mock_makedirs = mocker.patch('kit_vcs.drive_manager.makedirs')
     mock_open = mocker.patch('builtins.open', mocker.mock_open())
     mock_subprocess = mocker.patch('subprocess.run')
 
@@ -97,7 +97,7 @@ def test_initialize_directories(drive_manager: DriveManager, mocker: MockerFixtu
 
 
 def test_get_index_hashes(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('os.path.exists', return_value=True)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data='filepath,filehash,+\n'))
 
     result = drive_manager.get_index_hashes()
@@ -107,7 +107,7 @@ def test_get_index_hashes(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_get_head_success(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=True)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data='commit_id'))
 
     result = drive_manager.get_head()
@@ -117,12 +117,12 @@ def test_get_head_success(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_get_head_no_path(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=False)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=False)
     assert drive_manager.get_head() is None
 
 
 def test_get_seed_success(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=True)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data='42'))
 
     result = drive_manager.get_seed()
@@ -132,12 +132,12 @@ def test_get_seed_success(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_get_seed_no_path(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=False)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=False)
     assert drive_manager.get_seed() is None
 
 
 def test_get_last_commit_id_success(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=False)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=False)
     mocker.patch('builtins.open', mocker.mock_open(read_data='branch_path'))
 
     result = drive_manager.get_last_commit_id('commit_id')
@@ -145,7 +145,7 @@ def test_get_last_commit_id_success(drive_manager: DriveManager, mocker: MockerF
 
 
 def test_get_last_commit_id_path_exists(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=True)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
     assert drive_manager.get_last_commit_id('commit_id') == 'commit_id'
 
 
@@ -154,7 +154,7 @@ def test_get_last_commit_id_head_none(drive_manager: DriveManager):
 
 
 def test_get_commit_tree_hash_success(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=True)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data='user\n2024-01-01\ndescription\ntree\nparent'))
 
     result = drive_manager.get_commit_tree_hash('a1b2c3d4e5f6')
@@ -165,13 +165,13 @@ def test_get_commit_tree_hash_success(drive_manager: DriveManager, mocker: Mocke
 
 
 def test_get_commit_tree_hash_no_path(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.path.exists', return_value=False)
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=False)
 
     assert drive_manager.get_commit_tree_hash('a1b2c3d4e5f6') is None
 
 
 def test_is_exist(drive_manager: DriveManager, mocker: MockerFixture):
-    mock_exists = mocker.patch('drive_manager.path.exists', return_value=True)
+    mock_exists = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
 
     result = drive_manager.is_exist(Utils.parse_from_str_to_os_path('local/path'))
 
@@ -180,9 +180,9 @@ def test_is_exist(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_delete_if_empty_file(drive_manager, mocker):
-    mock_exist = mocker.patch('drive_manager.path.exists', return_value=True)
-    mock_getsize = mocker.patch('drive_manager.path.getsize', return_value=0)
-    mock_remove = mocker.patch('drive_manager.remove')
+    mock_exist = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
+    mock_getsize = mocker.patch('kit_vcs.drive_manager.path.getsize', return_value=0)
+    mock_remove = mocker.patch('kit_vcs.drive_manager.remove')
 
     drive_manager.delete_if_empty_file(Utils.parse_from_str_to_os_path('local/path'))
     full_path = Utils.parse_from_str_to_os_path('/fake/workspace/local/path')
@@ -193,7 +193,7 @@ def test_delete_if_empty_file(drive_manager, mocker):
 
 
 def test_get_files_in_dir(drive_manager: DriveManager, mocker: MockerFixture):
-    mock_walk = mocker.patch('drive_manager.walk',
+    mock_walk = mocker.patch('kit_vcs.drive_manager.walk',
                              return_value=[(Utils.parse_from_str_to_os_path('/fake/workspace/local_path'), [],
                                             ['file1', 'file2'])])
 
@@ -204,7 +204,7 @@ def test_get_files_in_dir(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_remove(drive_manager: DriveManager, mocker: MockerFixture):
-    mock_remove = mocker.patch('drive_manager.remove')
+    mock_remove = mocker.patch('kit_vcs.drive_manager.remove')
     drive_manager.remove(Utils.parse_from_str_to_os_path('local/path'))
     mock_remove.assert_called_once_with(Utils.parse_from_str_to_os_path('/fake/workspace/local/path'))
 
@@ -230,7 +230,7 @@ def test_save_tree_add(drive_manager: DriveManager, save_tree_mock: (MockerFixtu
 def test_save_tree_remove(drive_manager: DriveManager, save_tree_mock: (MockerFixture, MockerFixture, MockerFixture),
                           mocker: MockerFixture):
     mock_makedirs, mock_exists, mock_copy_tree = save_tree_mock
-    mock_remove = mocker.patch('drive_manager.remove')
+    mock_remove = mocker.patch('kit_vcs.drive_manager.remove')
 
     drive_manager.index_hashes = {'filepath/file': ('filehash', False)}
     drive_manager.save_tree('a1b2c3d4e5f6', 'p1e2v3h4a5s6')
@@ -271,11 +271,11 @@ def test_calculate_index_data_file_not_in_prev_tree(drive_manager: DriveManager,
 
 
 def test_calculate_index_data_dot_path(drive_manager, mocker: MockerFixture):
-    mocker.patch('utils.Utils.check_for_dot_path', return_value=True)
+    mocker.patch('kit_vcs.utils.Utils.check_for_dot_path', return_value=True)
 
     drive_manager.calculate_index_data(Utils.parse_from_str_to_os_path('local/path'), 'p1e2v3h4a5s6', 42)
 
-    mocker.patch('drive_manager.path.isdir').assert_not_called()
+    mocker.patch('kit_vcs.drive_manager.path.isdir').assert_not_called()
 
 
 def test_calculate_index_data_file_differs_in_prev_tree(drive_manager: DriveManager,
@@ -374,8 +374,8 @@ def test_write_index_data(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_rm_index_files(drive_manager: DriveManager, mocker: MockerFixture):
-    mock_exists = mocker.patch('drive_manager.path.exists', return_value=True)
-    mock_remove = mocker.patch('drive_manager.remove')
+    mock_exists = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
+    mock_remove = mocker.patch('kit_vcs.drive_manager.remove')
 
     drive_manager.index_hashes = {'filepath': ('filehash', False)}
     drive_manager.rm_index_files()
@@ -386,9 +386,9 @@ def test_rm_index_files(drive_manager: DriveManager, mocker: MockerFixture):
 
 
 def test_load_tree_files_success(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.walk', return_value=[
+    mocker.patch('kit_vcs.drive_manager.walk', return_value=[
         (Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6'), [], ['file'])])
-    mocker.patch('drive_manager.makedirs')
+    mocker.patch('kit_vcs.drive_manager.makedirs')
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data='filehash'))
     mock_load_file = mocker.patch.object(drive_manager, 'load_file')
 
@@ -402,17 +402,17 @@ def test_load_tree_files_success(drive_manager: DriveManager, mocker: MockerFixt
 
 def test_load_tree_files_no_tree_hash(drive_manager: DriveManager, mocker: MockerFixture):
     drive_manager.load_tree_files('')
-    mock_walk = mocker.patch('drive_manager.walk', return_value=[])
+    mock_walk = mocker.patch('kit_vcs.drive_manager.walk', return_value=[])
     mock_walk.assert_not_called()
 
 
 def test_delete_tree_files_success(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker.patch('drive_manager.walk',
+    mocker.patch('kit_vcs.drive_manager.walk',
                  return_value=[(Utils.parse_from_str_to_os_path('/fake/workspace/.kit/objects/a1/b2c3d4e5f6'), ['dir'],
                                 ['file'])])
-    mocker.patch('drive_manager.path.exists', return_value=True)
-    mock_remove = mocker.patch('drive_manager.remove')
-    mock_rmdir = mocker.patch('drive_manager.rmdir')
+    mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
+    mock_remove = mocker.patch('kit_vcs.drive_manager.remove')
+    mock_rmdir = mocker.patch('kit_vcs.drive_manager.rmdir')
 
     drive_manager.delete_tree_files('a1b2c3d4e5f6')
 
@@ -422,7 +422,7 @@ def test_delete_tree_files_success(drive_manager: DriveManager, mocker: MockerFi
 
 def test_delete_tree_files_no_tree_hash(drive_manager: DriveManager, mocker: MockerFixture):
     drive_manager.delete_tree_files('')
-    mock_walk = mocker.patch('drive_manager.walk', return_value=[])
+    mock_walk = mocker.patch('kit_vcs.drive_manager.walk', return_value=[])
     mock_walk.assert_not_called()
 
 

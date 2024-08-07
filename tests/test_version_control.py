@@ -1,10 +1,10 @@
-from utils import *
-from version_control import VersionControl
+from kit_vcs.utils import *
+from kit_vcs.version_control import VersionControl
 
 
 @pytest.fixture
 def mock_drive_manager(mocker: MockerFixture):
-    mock_drive = mocker.patch('version_control.DriveManager')
+    mock_drive = mocker.patch('kit_vcs.version_control.DriveManager')
     return mock_drive.return_value
 
 
@@ -15,8 +15,8 @@ def version_control(mock_drive_manager):
 
 @pytest.fixture
 def dir_exists_mock(mocker: MockerFixture):
-    mock_exists = mocker.patch('utils.path.isdir', return_value=True)
-    mock_exists.patch('utils.Utils.check_repository_exists', lambda x: x)
+    mock_exists = mocker.patch('kit_vcs.utils.path.isdir', return_value=True)
+    mock_exists.patch('kit_vcs.utils.Utils.check_repository_exists', lambda x: x)
     return mock_exists
 
 

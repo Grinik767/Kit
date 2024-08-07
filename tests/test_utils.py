@@ -1,8 +1,8 @@
-from utils import *
+from kit_vcs.utils import *
 
 
 def test_check_repository_exists_success(mocker: MockerFixture):
-    mocker.patch('utils.path.isdir', return_value=True)
+    mocker.patch('kit_vcs.utils.path.isdir', return_value=True)
     Utils.workspace_path = '/mock/workspace'
     method = mocker.MagicMock()
 
@@ -12,7 +12,7 @@ def test_check_repository_exists_success(mocker: MockerFixture):
 
 
 def test_check_repository_exists_fail(mocker: MockerFixture):
-    mocker.patch('utils.path.isdir', return_value=False)
+    mocker.patch('kit_vcs.utils.path.isdir', return_value=False)
     Utils.workspace_path = '/mock/workspace'
     method = mocker.MagicMock()
 
@@ -22,7 +22,7 @@ def test_check_repository_exists_fail(mocker: MockerFixture):
 
 
 def test_get_tree_diff(mocker: MockerFixture):
-    mocker.patch('utils.Utils._Utils__compare_trees',
+    mocker.patch('kit_vcs.utils.Utils._Utils__compare_trees',
                  return_value=({'added_file'}, {'removed_file'}, {'changed_file'}))
     diff = Utils.get_tree_diff('/path/to/tree1', '/path/to/tree2')
     assert diff == ['+;added_file', '~;changed_file', '-;removed_file']
@@ -34,7 +34,7 @@ def test_get_file_hash(tmp_path, mocker: MockerFixture):
     file_path = str(test_file)
     workspace_path = str(tmp_path)
     seed = 0
-    mocker.patch('utils.path.isfile', return_value=True)
+    mocker.patch('kit_vcs.utils.path.isfile', return_value=True)
 
     hash_value = Utils.get_file_hash(file_path, workspace_path, seed)
     expected_hash = xxh3_128(path.relpath(file_path, start=workspace_path), seed=seed)
@@ -58,7 +58,7 @@ def test_get_tree_hash(tmp_path, mocker: MockerFixture):
     index_file.write_text("file1.txt,hash1,+\nfile2.txt,hash2,~")
     workspace_path = str(tmp_path)
     seed = 0
-    mocker.patch('utils.path.isfile', return_value=True)
+    mocker.patch('kit_vcs.utils.path.isfile', return_value=True)
 
     hash_value = Utils.get_tree_hash(workspace_path, seed)
     expected_hash = xxh3_128('kit', seed=seed)
@@ -85,10 +85,10 @@ def test_parse_from_str_to_os_path():
 
 
 def test_check_for_dot_path(mocker: MockerFixture):
-    mocker.patch('utils.path.isfile', return_value=True)
+    mocker.patch('kit_vcs.utils.path.isfile', return_value=True)
     assert Utils.check_for_dot_path("a\\.b\\c.txt") is True
     assert Utils.check_for_dot_path("a\\b\\c.txt") is False
 
-    mocker.patch('utils.path.isfile', return_value=False)
+    mocker.patch('kit_vcs.utils.path.isfile', return_value=False)
     assert Utils.check_for_dot_path("a\\.b\\c") is True
     assert Utils.check_for_dot_path("a\\b\\c") is False
