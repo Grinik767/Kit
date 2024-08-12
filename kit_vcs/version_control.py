@@ -198,41 +198,8 @@ class VersionControl:
 
     @Utils.check_repository_exists
     def try_merge_commits(self, main_commit: str, additional_commit: str) -> list[(str, str, str)]: #TODO Порефачить эту херню
-        main_tree_id = self.drive.commit_to_tree(main_commit)
-        additional_tree_id = self.drive.commit_to_tree(additional_commit)
-        main_tree_path = path.join(main_tree_id[:2], main_tree_id[2:])
-        additional_tree_path = path.join(additional_tree_id[:2], additional_tree_id[2:])
-        conflicts = []
-
-        for root, _, files in walk(path.join(self.repo_path, 'objects', main_tree_path)):
-            for file in files:
-                main_file_path = path.join(main_tree_path, file)
-                additional_file_path = path.join(additional_tree_path, file)
-                drive_main_file_path = path.join('.kit', 'objects', main_file_path)
-                drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
-                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', main_tree_path))
-                main_file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
-                additional_file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
-
-                if self.drive.is_exist(drive_additional_file_path) and self.drive.is_exist(drive_main_file_path):
-                    if main_file_hash != additional_file_hash:
-                        conflicts.append((path.join(rel_path, file), main_file_hash, additional_file_hash))
-                else:
-                    self.drive.load_file(main_file_hash, path.join(self.workspace_path, rel_path, file))
-
-        for root, _, files in walk(path.join(self.repo_path, 'objects', additional_tree_path)):
-            for file in files:
-                main_file_path = path.join(main_tree_path, file)
-                additional_file_path = path.join(additional_tree_path, file)
-                drive_main_file_path = path.join('.kit', 'objects', main_file_path)
-                drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
-                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', additional_tree_path))
-
-                if self.drive.is_exist(drive_additional_file_path) and self.drive.is_exist(drive_main_file_path):
-                    continue
-
-                file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
-                self.drive.load_file(file_hash, path.join(self.workspace_path, rel_path, file))
+        conflicts = self.__a(main_commit, additional_commit)
+        self.__a(additional_commit, main_commit)
 
         return conflicts
 
@@ -263,6 +230,32 @@ class VersionControl:
 
         if not self.drive.is_exist(path.join('.kit', checkout_path)):
             raise errors.CheckoutError(f"{checkout_type} with name {name} does not exist")
+
+    def __a(self, main_commit: str, additional_commit: str) -> list[(str, str, str)]:
+        main_tree_id = self.drive.commit_to_tree(main_commit)
+        additional_tree_id = self.drive.commit_to_tree(additional_commit)
+        main_tree_path = path.join(main_tree_id[:2], main_tree_id[2:])
+        additional_tree_path = path.join(additional_tree_id[:2], additional_tree_id[2:])
+        conflicts = []
+
+        for root, _, files in walk(path.join(self.repo_path, 'objects', main_tree_path)):
+            for file in files:
+                main_file_path = path.join(main_tree_path, file)
+                additional_file_path = path.join(additional_tree_path, file)
+                drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
+                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', main_tree_path))
+                main_file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
+
+                if not self.drive.is_exist(drive_additional_file_path):
+                    self.drive.load_file(main_file_hash, path.join(self.workspace_path, rel_path, file))
+                    continue
+
+                additional_file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
+
+                if main_file_hash != additional_file_hash:
+                    conflicts.append((path.join(rel_path, file), main_file_hash, additional_file_hash))
+
+        return conflicts
 
 
 if __name__ == '__main__':
