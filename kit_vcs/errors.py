@@ -30,3 +30,7 @@ class UncommitedChangesError(BaseError):
 
 class RepositoryExistError(BaseError):
     pass
+
+
+class MergeConflictError(BaseError):
+    pass
