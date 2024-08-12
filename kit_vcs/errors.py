@@ -34,3 +34,6 @@ class RepositoryExistError(BaseError):
 
 class MergeConflictError(BaseError):
     pass
+
+class NotFoundError(BaseError):
+    pass
