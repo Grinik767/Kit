@@ -67,16 +67,22 @@ class VersionControl:
 
         self.drive.rm_index_files()
         self.drive.save_files_from_index()
-        self.current_id = commit_id
-
-        if path.exists(path.join(self.repo_path, 'objects', self.head[:2], self.head[2:])):
-            self.drive.write(path.join('.kit', 'HEAD'), self.current_id)
-        else:
-            self.drive.write(path.join('.kit', self.head), self.current_id)
+        self.__update_head(commit_id)
 
         if self.drive.is_exist(self.index_path):
             self.drive.remove(self.index_path)
             self.drive.index_hashes.clear()
+
+    @Utils.check_repository_exists
+    def amend(self, description: str) -> None:
+        old_id = self.current_id
+        parent = self.drive.read(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:])).split('\n')[4]
+        self.commit(description)
+        user, date, description, tree, _ = self.drive.read(path.join('.kit', 'objects', self.current_id[:2],
+                                                                     self.current_id[2:])).split('\n')
+        self.drive.write(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:]),
+                         '\n'.join([user, date, description, tree, parent]))
+        self.drive.remove(path.join('.kit', 'objects', old_id[:2], old_id[2:]))
 
     @Utils.check_repository_exists
     def commits_list(self) -> (str, str, str, str):
@@ -202,26 +208,20 @@ class VersionControl:
         self.__try_merge_commits(additional_commit, main_commit)
 
         if conflicts:
-            for file_path, main_hash, additional_hash in conflicts:
-                self.drive.write_lines(file_path, self.drive.merge_files_with_conflicts(main_hash, additional_hash))
-                self.add(file_path)
-
-            raise errors.MergeConflictError(f"Merge conflict(s) detected in the following files: "
-                                            f"{', '.join([c[0] for c in conflicts])}")
+            self.__mark_merge_conflicts(conflicts)
 
         if no_commit:
             return
 
         self.commit(message)
 
-    def amend(self, description: str) -> None:
-        old_id = self.current_id
-        parent = self.drive.read(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:])).split('\n')[4]
-        self.commit(description)
-        user, date, description, tree, _ = self.drive.read(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:])).split('\n')
-        self.drive.write(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:]),
-                         '\n'.join([user, date, description, tree, parent]))
-        self.drive.remove(path.join('.kit', 'objects', old_id[:2], old_id[2:]))
+    def __mark_merge_conflicts(self, conflicts: list):
+        for file_path, main_hash, additional_hash in conflicts:
+            self.drive.write_lines(file_path, self.drive.merge_files_with_conflicts(main_hash, additional_hash))
+            self.add(file_path)
+
+        raise errors.MergeConflictError(f"Merge conflict(s) detected in the following files: "
+                                        f"{', '.join([c[0] for c in conflicts])}")
 
     def __load_commit_data(self, commit_id: str) -> None:
         self.head = self.drive.get_head()
@@ -263,6 +263,26 @@ class VersionControl:
                     conflicts.append((path.join(rel_path, file), main_file_hash, additional_file_hash))
 
         return conflicts
+
+    def __is_ancestor(self, base_commit_id: str, target_commit_id: str) -> bool:
+        name = target_commit_id
+
+        while name != 'None':
+            if name == base_commit_id:
+                return True
+
+            parent = self.drive.read(path.join('.kit', "objects", name[:2], name[2:])).split('\n')[4]
+            name = parent
+
+        return False
+
+    def __update_head(self, new_head: str) -> None:
+        self.current_id = new_head
+
+        if path.exists(path.join(self.repo_path, 'objects', self.head[:2], self.head[2:])):
+            self.drive.write(path.join('.kit', 'HEAD'), self.current_id)
+        else:
+            self.drive.write(path.join('.kit', self.head), self.current_id)
 
 
 if __name__ == '__main__':
