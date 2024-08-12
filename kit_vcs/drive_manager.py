@@ -7,6 +7,7 @@ class DriveManager:
         self.repo_path = path.join(self.workspace_path, '.kit')
         self.index_path = path.join(self.repo_path, 'INDEX')
         self.index_hashes = self.get_index_hashes()
+        self.temp_path = path.join(self.repo_path, 'TEMP')
 
     def save_file(self, local_path: str, file_hash: str) -> None:
         folder = file_hash[:2]
@@ -62,6 +63,10 @@ class DriveManager:
     def write(self, local_path: str, data: str, mode: str = 'w') -> None:
         with open(path.join(self.workspace_path, local_path), mode) as file:
             file.write(data)
+
+    def write_lines(self, local_path: str, data: list[str], mode: str = 'w') -> None:
+        with open(path.join(self.workspace_path, local_path), mode) as file:
+            file.writelines(data)
 
     def read(self, local_path: str) -> str:
         with open(path.join(self.workspace_path, local_path), 'r') as file:
@@ -229,15 +234,54 @@ class DriveManager:
     def remove(self, local_path: str) -> None:
         remove(path.join(self.workspace_path, local_path))
 
-    def get_files_diff(self, local_path1: str, local_path2: str):
-        lines1 = self.read(path.join('.kit', 'objects', local_path1[:2], local_path1[2:])).split('\n')
-        lines2 = self.read(path.join('.kit', 'objects', local_path2[:2], local_path2[2:])).split('\n')
-        diff = []
+    def merge_files_with_conflicts(self, hash1, hash2):
+        self.load_file(hash1, self.temp_path)
+        base_version = self.read(self.temp_path)
+        self.load_file(hash2, self.temp_path)
+        new_version = self.read(self.temp_path)
 
-        for item in Utils.get_files_diff(lines1, lines2):
-            diff.append(item)
+        conflict_lines = []
+        diff = ndiff(base_version, new_version)
 
-        return diff
+        in_conflict = False
+        base_conflict = []
+        new_conflict = []
+
+        for line in diff:
+            if line.startswith("  "):
+                if in_conflict:
+                    conflict_lines.append("<<<<<<< HEAD\n")
+                    conflict_lines.extend(base_conflict)
+                    conflict_lines.append("=======\n")
+                    conflict_lines.extend(new_conflict)
+                    conflict_lines.append(">>>>>>> branch\n")
+                    in_conflict = False
+                    base_conflict = []
+                    new_conflict = []
+
+                conflict_lines.append(line[2:])
+
+            elif line.startswith("- "):
+                if not in_conflict:
+                    in_conflict = True
+
+                base_conflict.append(line[2:])
+
+            elif line.startswith("+ "):
+                if not in_conflict:
+                    in_conflict = True
+                new_conflict.append(line[2:])
+
+        if in_conflict:
+            conflict_lines.append("<<<<<<< HEAD\n")
+            conflict_lines.extend(base_conflict)
+            conflict_lines.append("=======\n")
+            conflict_lines.extend(new_conflict)
+            conflict_lines.append(">>>>>>> branch\n")
+
+        self.remove(self.temp_path)
+
+        return conflict_lines
 
 
 if __name__ == '__main__':
