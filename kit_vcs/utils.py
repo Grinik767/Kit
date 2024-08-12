@@ -9,7 +9,7 @@ from random import randint
 import pytest
 from pytest_mock import MockerFixture
 from xxhash import xxh3_128
-
+from difflib import SequenceMatcher
 import kit_vcs.errors as errors
 
 
@@ -38,6 +38,14 @@ class Utils:
             result.append(f"-;{file}")
 
         return result
+
+    @staticmethod
+    def get_files_diff(lines1: list[str], lines2: list[str]):
+        for item in SequenceMatcher(None, lines1, lines2).get_opcodes():
+            if item[0] == 'equal':
+                continue
+
+            yield item
 
     @staticmethod
     def get_file_hash(abs_path: str, workspace_path: str, seed: int) -> xxh3_128:

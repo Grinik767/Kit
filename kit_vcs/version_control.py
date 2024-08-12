@@ -195,6 +195,49 @@ class VersionControl:
 
         return path.basename(self.head)
 
+    @Utils.check_repository_exists
+    def try_merge_commits(self, main_commit: str, additional_commit: str) -> list[str]:
+        main_tree_id = self.drive.commit_to_tree(main_commit)
+        additional_tree_id = self.drive.commit_to_tree(additional_commit)
+        main_tree_path = path.join(main_tree_id[:2], main_tree_id[2:])
+        additional_tree_path = path.join(additional_tree_id[:2], additional_tree_id[2:])
+        conflicts = []
+
+        for root, _, files in walk(path.join(self.repo_path, 'objects', main_tree_path)):
+            for file in files:
+                main_file_path = path.join(main_tree_path, file)
+                additional_file_path = path.join(additional_tree_path, file)
+                drive_main_file_path = path.join('.kit', 'objects', main_file_path)
+                drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
+
+                if self.drive.is_exist(drive_additional_file_path) and self.drive.is_exist(drive_main_file_path):
+                    if self.drive.read(drive_main_file_path) != self.drive.read(drive_additional_file_path):
+                        conflicts.append(file)
+                else:
+                    file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
+                    rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', main_tree_path))
+                    self.drive.load_file(file_hash, path.join(self.workspace_path, rel_path, file))
+
+        for root, _, files in walk(path.join(self.repo_path, 'objects', additional_tree_path)):
+            for file in files:
+                main_file_path = path.join(main_tree_path, file)
+                additional_file_path = path.join(additional_tree_path, file)
+                drive_main_file_path = path.join('.kit', 'objects', main_file_path)
+                drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
+
+                if self.drive.is_exist(drive_additional_file_path) and self.drive.is_exist(drive_main_file_path):
+                    continue
+
+                file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
+                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', additional_tree_path))
+                self.drive.load_file(file_hash, path.join(self.workspace_path, rel_path, file))
+
+        return conflicts
+
+    @Utils.check_repository_exists
+    def resolve_merge_conflict(self, file_path, line) -> None:
+        pass
+
     def __load_commit_data(self, commit_id: str) -> None:
         self.head = self.drive.get_head()
         self.drive.delete_tree_files(self.drive.get_commit_tree_hash(self.current_id))

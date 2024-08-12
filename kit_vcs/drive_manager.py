@@ -59,8 +59,8 @@ class DriveManager:
             if self.index_hashes[filepath][1]:
                 self.save_file(filepath, self.index_hashes[filepath][0])
 
-    def write(self, local_path: str, data: str) -> None:
-        with open(path.join(self.workspace_path, local_path), 'w') as file:
+    def write(self, local_path: str, data: str, mode: str = 'w') -> None:
+        with open(path.join(self.workspace_path, local_path), mode) as file:
             file.write(data)
 
     def read(self, local_path: str) -> str:
@@ -228,6 +228,16 @@ class DriveManager:
 
     def remove(self, local_path: str) -> None:
         remove(path.join(self.workspace_path, local_path))
+
+    def get_files_diff(self, local_path1: str, local_path2: str):
+        lines1 = self.read(path.join('.kit', 'objects', local_path1[:2], local_path1[2:])).split('\n')
+        lines2 = self.read(path.join('.kit', 'objects', local_path2[:2], local_path2[2:])).split('\n')
+        diff = []
+
+        for item in Utils.get_files_diff(lines1, lines2):
+            diff.append(item)
+
+        return diff
 
 
 if __name__ == '__main__':
