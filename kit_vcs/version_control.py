@@ -8,6 +8,7 @@ class VersionControl:
         self.workspace_path = workspace_path
         self.repo_path = path.abspath(path.join(workspace_path, ".kit"))
         self.index_path = path.join('.kit', 'INDEX')
+        self.temp_path = path.join('.kit', 'TEMP')
 
         self.drive = DriveManager(self.workspace_path)
         self.head = self.drive.get_head()
@@ -196,7 +197,7 @@ class VersionControl:
         return path.basename(self.head)
 
     @Utils.check_repository_exists
-    def try_merge_commits(self, main_commit: str, additional_commit: str) -> list[str]:
+    def try_merge_commits(self, main_commit: str, additional_commit: str) -> list[(str, str, str)]: #TODO Порефачить эту херню
         main_tree_id = self.drive.commit_to_tree(main_commit)
         additional_tree_id = self.drive.commit_to_tree(additional_commit)
         main_tree_path = path.join(main_tree_id[:2], main_tree_id[2:])
@@ -209,14 +210,15 @@ class VersionControl:
                 additional_file_path = path.join(additional_tree_path, file)
                 drive_main_file_path = path.join('.kit', 'objects', main_file_path)
                 drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
+                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', main_tree_path))
+                main_file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
+                additional_file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
 
                 if self.drive.is_exist(drive_additional_file_path) and self.drive.is_exist(drive_main_file_path):
-                    if self.drive.read(drive_main_file_path) != self.drive.read(drive_additional_file_path):
-                        conflicts.append(file)
+                    if main_file_hash != additional_file_hash:
+                        conflicts.append((path.join(rel_path, file), main_file_hash, additional_file_hash))
                 else:
-                    file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
-                    rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', main_tree_path))
-                    self.drive.load_file(file_hash, path.join(self.workspace_path, rel_path, file))
+                    self.drive.load_file(main_file_hash, path.join(self.workspace_path, rel_path, file))
 
         for root, _, files in walk(path.join(self.repo_path, 'objects', additional_tree_path)):
             for file in files:
@@ -224,19 +226,29 @@ class VersionControl:
                 additional_file_path = path.join(additional_tree_path, file)
                 drive_main_file_path = path.join('.kit', 'objects', main_file_path)
                 drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
+                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', additional_tree_path))
 
                 if self.drive.is_exist(drive_additional_file_path) and self.drive.is_exist(drive_main_file_path):
                     continue
 
                 file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
-                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', additional_tree_path))
                 self.drive.load_file(file_hash, path.join(self.workspace_path, rel_path, file))
 
         return conflicts
 
     @Utils.check_repository_exists
-    def resolve_merge_conflict(self, file_path, line) -> None:
-        pass
+    def write_to_temp(self, line):
+        self.drive.write(self.temp_path, line, 'a')
+
+    @Utils.check_repository_exists
+    def read_from_temp(self):
+        if not self.drive.is_exist(self.temp_path):
+            return None
+
+        data = self.drive.read(self.temp_path)
+        self.drive.remove(self.temp_path)
+
+        return data
 
     def __load_commit_data(self, commit_id: str) -> None:
         self.head = self.drive.get_head()
@@ -254,4 +266,6 @@ class VersionControl:
 
 
 if __name__ == '__main__':
+    vcs = VersionControl('DesMo', 'C:/Users\DesMo\OneDrive\Рабочий стол/123')
+    print(vcs.try_merge_commits('55add1bd12a740c950924a1fd555f279', '9251d370b300557b743d6fe947567cb8'))
     pass
