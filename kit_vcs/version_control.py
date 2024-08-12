@@ -196,6 +196,7 @@ class VersionControl:
 
         return path.basename(self.head)
 
+    @Utils.check_repository_exists
     def merge_commits(self, main_commit, additional_commit, message, no_commit=False) -> None:
         conflicts = self.__try_merge_commits(main_commit, additional_commit)
         self.__try_merge_commits(additional_commit, main_commit)
@@ -213,19 +214,14 @@ class VersionControl:
 
         self.commit(message)
 
-    @Utils.check_repository_exists
-    def write_to_temp(self, line):
-        self.drive.write(self.temp_path, line, 'a')
-
-    @Utils.check_repository_exists
-    def read_from_temp(self):
-        if not self.drive.is_exist(self.temp_path):
-            return None
-
-        data = self.drive.read(self.temp_path)
-        self.drive.remove(self.temp_path)
-
-        return data
+    def amend(self, description: str) -> None:
+        old_id = self.current_id
+        parent = self.drive.read(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:])).split('\n')[4]
+        self.commit(description)
+        user, date, description, tree, _ = self.drive.read(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:])).split('\n')
+        self.drive.write(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:]),
+                         '\n'.join([user, date, description, tree, parent]))
+        self.drive.remove(path.join('.kit', 'objects', old_id[:2], old_id[2:]))
 
     def __load_commit_data(self, commit_id: str) -> None:
         self.head = self.drive.get_head()
