@@ -239,7 +239,7 @@ class DriveManager:
             for line in file2:
                 yield f'+;{line}'
 
-            return
+            return self.remove(self.temp_path)
 
         if hash2 is None:
             self.load_file(hash1, self.temp_path)
@@ -248,7 +248,7 @@ class DriveManager:
             for line in file1:
                 yield f'-;{line}'
 
-            return
+            return self.remove(self.temp_path)
 
         self.load_file(hash1, self.temp_path)
         file1 = self.read(self.temp_path).splitlines()
@@ -262,7 +262,7 @@ class DriveManager:
             elif line.startswith('- '):
                 yield f'-;{line[2:]}'
 
-        self.remove(self.temp_path)
+        return self.remove(self.temp_path)
 
     def merge_files_with_conflicts(self, hash1, hash2):
         self.load_file(hash1, self.temp_path)
