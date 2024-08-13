@@ -224,13 +224,45 @@ class DriveManager:
             for branch in branches:
                 yield branch
 
-    '''
-    def commit_to_tree(self, commit_hash: str) -> str:
-        return self.read(path.join('.kit', "objects", commit_hash[:2], commit_hash[2:])).split('\n')[3]
-    '''
+    def commit_to_tree_path(self, commit_hash: str) -> str:
+        tree_hash = self.get_commit_tree_hash(commit_hash)
+        return path.abspath(path.join('.kit', "objects", tree_hash[:2], tree_hash[2:]))
 
     def remove(self, local_path: str) -> None:
         remove(path.join(self.workspace_path, local_path))
+
+    def get_files_diff(self, hash1, hash2):
+        if hash1 is None:
+            self.load_file(hash2, self.temp_path)
+            file2 = self.read(self.temp_path).splitlines()
+
+            for line in file2:
+                yield f'+;{line}'
+
+            return
+
+        if hash2 is None:
+            self.load_file(hash1, self.temp_path)
+            file1 = self.read(self.temp_path).splitlines()
+
+            for line in file1:
+                yield f'-;{line}'
+
+            return
+
+        self.load_file(hash1, self.temp_path)
+        file1 = self.read(self.temp_path).splitlines()
+        self.load_file(hash2, self.temp_path)
+        file2 = self.read(self.temp_path).splitlines()
+        diff = ndiff(file1, file2)
+
+        for line in diff:
+            if line.startswith('+ '):
+                yield f'+;{line[2:]}'
+            elif line.startswith('- '):
+                yield f'-;{line[2:]}'
+
+        self.remove(self.temp_path)
 
     def merge_files_with_conflicts(self, hash1, hash2):
         self.load_file(hash1, self.temp_path)
