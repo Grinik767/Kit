@@ -96,8 +96,8 @@ class VersionControl:
 
     @Utils.check_repository_exists
     def commits_diff(self, commit1_hash: str, commit2_hash: str) -> (str, str, str):
-        tree1_hash = self.drive.commit_to_tree(commit1_hash)
-        tree2_hash = self.drive.commit_to_tree(commit2_hash)
+        tree1_hash = self.drive.get_commit_tree_hash(commit1_hash)
+        tree2_hash = self.drive.get_commit_tree_hash(commit2_hash)
         tree1_path = path.abspath(path.join('.kit', "objects", tree1_hash[:2], tree1_hash[2:]))
         tree2_path = path.abspath(path.join('.kit', "objects", tree2_hash[:2], tree2_hash[2:]))
 
@@ -239,27 +239,27 @@ class VersionControl:
             raise errors.CheckoutError(f"{checkout_type} with name {name} does not exist")
 
     def __try_merge_commits(self, main_commit: str, additional_commit: str) -> list[(str, str, str)]:
-        main_tree_id = self.drive.commit_to_tree(main_commit)
-        additional_tree_id = self.drive.commit_to_tree(additional_commit)
+        main_tree_id = self.drive.get_commit_tree_hash(main_commit)
+        additional_tree_id = self.drive.get_commit_tree_hash(additional_commit)
         main_tree_path = path.join(main_tree_id[:2], main_tree_id[2:])
+        drive_main_tree_path = path.join(self.repo_path, 'objects', main_tree_path)
         additional_tree_path = path.join(additional_tree_id[:2], additional_tree_id[2:])
+
         conflicts = []
-
-        for root, _, files in walk(path.join(self.repo_path, 'objects', main_tree_path)):
+        for root, _, files in walk(drive_main_tree_path):
             for file in files:
-                main_file_path = path.join(main_tree_path, file)
-                additional_file_path = path.join(additional_tree_path, file)
+                rel_path = path.relpath(root, start=drive_main_tree_path)
+                main_file_path = path.join(main_tree_path, rel_path, file)
+                additional_file_path = path.join(additional_tree_path, rel_path, file)
                 drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
-                rel_path = path.relpath(root, start=path.join(self.repo_path, 'objects', main_tree_path))[3:]
-                main_file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
 
+                main_file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
                 if not self.drive.is_exist(drive_additional_file_path):
                     self.drive.load_file(main_file_hash, path.join(self.workspace_path, rel_path, file))
                     self.add(path.join(rel_path, file))
                     continue
 
                 additional_file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
-
                 if main_file_hash != additional_file_hash:
                     conflicts.append((path.join(rel_path, file), main_file_hash, additional_file_hash))
 
@@ -287,6 +287,4 @@ class VersionControl:
 
 
 if __name__ == '__main__':
-    vcs = VersionControl('DesMo', 'C:/Users\DesMo\OneDrive\Рабочий стол/123')
-    vcs.merge_commits('847f45871695c67907b338c909d32de4', '90f35e45dd24475c239162d9769f0808', '123')
     pass
