@@ -31,14 +31,14 @@ class VersionControl:
     def add(self, local_path: str) -> None:
         self.drive.calculate_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id), self.seed)
         self.drive.write_index_data()
-        self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
+        self.drive.delete_if_empty(path.join('.kit', 'INDEX'))
 
     @Utils.check_repository_exists
     def rm(self, local_path: str) -> None:
         self.drive.calculate_index_data(local_path, self.drive.get_commit_tree_hash(self.current_id),
                                         self.seed, False)
         self.drive.write_index_data()
-        self.drive.delete_if_empty_file(path.join('.kit', 'INDEX'))
+        self.drive.delete_if_empty(path.join('.kit', 'INDEX'))
 
     @Utils.check_repository_exists
     def index(self) -> str:
@@ -80,7 +80,9 @@ class VersionControl:
                                                                      self.current_id[2:])).split('\n')
         self.drive.write(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:]),
                          '\n'.join([user, date, description, tree, parent]))
+
         self.drive.remove(path.join('.kit', 'objects', old_id[:2], old_id[2:]))
+        self.drive.delete_if_empty(path.join('.kit', 'objects', old_id[:2]))
 
     @Utils.check_repository_exists
     def commits_list(self) -> (str, str, str, str):
