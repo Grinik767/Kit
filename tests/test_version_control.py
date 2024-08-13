@@ -58,7 +58,7 @@ def test_add(version_control: VersionControl, mock_drive_manager, dir_exists_moc
     mock_drive_manager.calculate_index_data.assert_called_once_with(
         'test_path', mock_commit_tree_hash, version_control.seed)
     mock_drive_manager.write_index_data.assert_called_once()
-    mock_drive_manager.delete_if_empty_file.assert_called_once_with(Utils.parse_from_str_to_os_path('.kit/INDEX'))
+    mock_drive_manager.delete_if_empty.assert_called_once_with(Utils.parse_from_str_to_os_path('.kit/INDEX'))
 
 
 def test_rm(version_control: VersionControl, mock_drive_manager, dir_exists_mock: MockerFixture):
@@ -69,7 +69,7 @@ def test_rm(version_control: VersionControl, mock_drive_manager, dir_exists_mock
     mock_drive_manager.calculate_index_data.assert_called_once_with(
         'test_path', mock_commit_tree_hash, version_control.seed, False)
     mock_drive_manager.write_index_data.assert_called_once()
-    mock_drive_manager.delete_if_empty_file.assert_called_once_with(Utils.parse_from_str_to_os_path('.kit/INDEX'))
+    mock_drive_manager.delete_if_empty.assert_called_once_with(Utils.parse_from_str_to_os_path('.kit/INDEX'))
 
 
 def test_index_success(version_control: VersionControl, mock_drive_manager, dir_exists_mock: MockerFixture):

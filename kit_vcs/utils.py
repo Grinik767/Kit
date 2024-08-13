@@ -3,7 +3,7 @@ import platform
 import subprocess
 from datetime import datetime
 from distutils.dir_util import copy_tree
-from os import makedirs, path, remove, rmdir, sep, walk
+from os import makedirs, path, remove, rmdir, sep, walk, listdir
 from random import randint
 
 import pytest

@@ -213,10 +213,14 @@ class DriveManager:
     def is_exist(self, local_path: str) -> bool:
         return path.exists(path.join(self.workspace_path, local_path))
 
-    def delete_if_empty_file(self, local_path: str) -> None:
+    def delete_if_empty(self, local_path: str) -> None:
         full_path = path.join(self.workspace_path, local_path)
-        if path.exists(full_path) and path.getsize(full_path) == 0:
+        if not path.exists(full_path):
+            return
+        if path.isfile(full_path) and path.getsize(full_path) == 0:
             remove(full_path)
+        elif path.isdir(full_path) and len(listdir(full_path)) == 0:
+            rmdir(full_path)
 
     def get_files_in_dir(self, local_path: str) -> str:
         full_path = path.join(self.workspace_path, local_path)

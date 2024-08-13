@@ -182,13 +182,15 @@ def test_is_exist(drive_manager: DriveManager, mocker: MockerFixture):
 
 def test_delete_if_empty_file(drive_manager, mocker):
     mock_exist = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
+    mock_isfile = mocker.patch('kit_vcs.drive_manager.path.isfile', return_value=True)
     mock_getsize = mocker.patch('kit_vcs.drive_manager.path.getsize', return_value=0)
     mock_remove = mocker.patch('kit_vcs.drive_manager.remove')
 
-    drive_manager.delete_if_empty_file(Utils.parse_from_str_to_os_path('local/path'))
-    full_path = Utils.parse_from_str_to_os_path('/fake/workspace/local/path')
+    drive_manager.delete_if_empty(Utils.parse_from_str_to_os_path('local/path/file.txt'))
+    full_path = Utils.parse_from_str_to_os_path('/fake/workspace/local/path/file.txt')
 
     mock_exist.assert_called_once_with(full_path)
+    mock_isfile.assert_called_once_with(full_path)
     mock_getsize.assert_called_once_with(full_path)
     mock_remove.assert_called_once_with(full_path)
 
