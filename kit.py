@@ -47,22 +47,28 @@ def remove(ctx, file):
 
 @click.command()
 @click.option('-m', '--message', required=True, help="Commit message")
+@click.option('-a', '--amend', is_flag=True, help="Amend commit")
 @click.pass_context
-def commit(ctx, message):
+def commit(ctx, message, amend=False):
     """Record changes to the repository"""
     vcs = ctx.obj['vcs']
-    vcs.commit(message)
+
+    if amend:
+        vcs.amend(message)
+    else:
+        vcs.commit(message)
+
     click.echo(f"\tCommitted with message: {message}")
 
 
 @click.command()
 @click.argument('name', required=False)
 @click.option('-a', '--all', is_flag=True, help="Show all branches")
-@click.option('-b', '--branch', is_flag=True, help="Checkout to branch after creating")
+@click.option('-c', '--checkout', is_flag=True, help="Checkout to branch after creating")
 @click.option('-d', '--delete', is_flag=True, help="Delete the specified branch")
 @click.option('--show-current', is_flag=True, help="Show current branch")
 @click.pass_context
-def branch(ctx, name, all, branch, delete, show_current):
+def branch(ctx, name, all, checkout, delete, show_current):
     """Create or manage branches"""
     vcs = ctx.obj['vcs']
 
@@ -86,7 +92,7 @@ def branch(ctx, name, all, branch, delete, show_current):
     vcs.create_branch(name)
     click.echo(f'\tBranch with name {name} created.')
 
-    if branch:
+    if checkout:
         vcs.checkout_to_branch(name, True)
         click.echo(f'\tChecked out to {name}.')
 
@@ -143,12 +149,36 @@ def checkout(ctx, name, branch, tag, commit, force):
 
 @click.command()
 @click.pass_context
-def index(ctx):
+def status(ctx):
     """Show index"""
     vcs = ctx.obj['vcs']
     for info in vcs.index():
         info = info.split(',')
         click.echo(f'\t{3 * info[2]} {info[0]}')
+
+
+@click.command()
+@click.argument('commit_id')
+@click.option('-m', '--message', required=False, help="Custom commit message after cherry-pick")
+@click.option('--no-commit', is_flag=True, help="Apply changes without committing")
+@click.pass_context
+def cherry_pick(ctx, commit_id, message, no_commit):
+    """Cherry-pick a commit and apply it to the current branch."""
+    vcs = ctx.obj['vcs']
+    vcs.merge_commits(vcs.current_id, commit_id, message, no_commit)
+
+
+@click.command()
+@click.argument('branch_name')
+@click.option('--no-commit', is_flag=True, help="Apply changes without committing")
+@click.pass_context
+def merge(ctx, branch_name, no_commit):
+    """Merge a branch it to the current branch."""
+    vcs = ctx.obj['vcs']
+    commit = vcs.get_branch_head(branch_name)
+    current_branch = vcs.get_current_branch()
+    message = f'Merge {branch_name} into {current_branch}'
+    vcs.merge_commits(vcs.current_id, commit, message, no_commit)
 
 
 @click.command()
@@ -195,7 +225,9 @@ main.add_command(commit)
 main.add_command(branch)
 main.add_command(tag)
 main.add_command(checkout)
-main.add_command(index)
+main.add_command(status)
+main.add_command(cherry_pick)
+main.add_command(merge)
 main.add_command(log)
 
 if __name__ == "__main__":
