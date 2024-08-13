@@ -221,9 +221,17 @@ class VersionControl:
 
         self.commit(message)
 
+    @Utils.check_repository_exists
+    def get_branch_head(self, name: str) -> str:
+        branch_path = path.join('.kit', 'refs', 'heads', name)
+
+        if not self.drive.is_exist(branch_path):
+            raise errors.NotFoundError(f"Branch with name {name} does not exist")
+
+        return self.drive.read(branch_path)
+
     def __mark_merge_conflicts(self, conflicts: list):
         for file_path, main_hash, additional_hash in conflicts:
-            print(self.drive.merge_files_with_conflicts(main_hash, additional_hash))
             self.drive.write(file_path, '\n'.join(self.drive.merge_files_with_conflicts(main_hash, additional_hash)))
             self.add(file_path)
 
