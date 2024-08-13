@@ -209,7 +209,18 @@ class VersionControl:
         return path.basename(self.head)
 
     @Utils.check_repository_exists
-    def merge_commits(self, main_commit, additional_commit, message, no_commit=False) -> None:
+    def merge_commits(self, main_commit, additional_commit, message, cherry_pick=False, no_commit=False) -> None:
+        if not self.drive.is_exist(path.join(self.repo_path, 'objects', main_commit[:2], main_commit[2:])):
+            raise errors.NotFoundError(f"Commit {main_commit} not found")
+
+        if not self.drive.is_exist(path.join(self.repo_path, 'objects', additional_commit[:2], additional_commit[2:])):
+            raise errors.NotFoundError(f"Commit {additional_commit} not found")
+
+        if not cherry_pick and self.__is_ancestor(main_commit, additional_commit):
+            self.__update_head(additional_commit)
+            self.__load_commit_data(additional_commit)
+            return
+
         conflicts = self.__try_merge_commits(main_commit, additional_commit)
         self.__try_merge_commits(additional_commit, main_commit)
 
