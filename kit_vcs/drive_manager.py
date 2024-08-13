@@ -224,8 +224,10 @@ class DriveManager:
             for branch in branches:
                 yield branch
 
+    '''
     def commit_to_tree(self, commit_hash: str) -> str:
         return self.read(path.join('.kit', "objects", commit_hash[:2], commit_hash[2:])).split('\n')[3]
+    '''
 
     def remove(self, local_path: str) -> None:
         remove(path.join(self.workspace_path, local_path))
