@@ -165,7 +165,7 @@ def status(ctx):
 def cherry_pick(ctx, commit_id, message, no_commit):
     """Cherry-pick a commit and apply it to the current branch."""
     vcs = ctx.obj['vcs']
-    vcs.merge_commits(vcs.current_id, commit_id, message, no_commit)
+    vcs.merge_commits(vcs.current_id, commit_id, message, no_commit=no_commit, cherry_pick=True)
 
 
 @click.command()
@@ -176,9 +176,9 @@ def merge(ctx, branch_name, no_commit):
     """Merge a branch it to the current branch."""
     vcs = ctx.obj['vcs']
     commit = vcs.get_branch_head(branch_name)
-    current_branch = vcs.get_current_branch()
+    current_branch = vcs.current_branch()
     message = f'Merge {branch_name} into {current_branch}'
-    vcs.merge_commits(vcs.current_id, commit, message, no_commit)
+    vcs.merge_commits(vcs.current_id, commit, message, no_commit=no_commit)
 
 
 @click.command()
