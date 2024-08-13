@@ -8,8 +8,6 @@ class VersionControl:
         self.workspace_path = workspace_path
         self.repo_path = path.abspath(path.join(workspace_path, ".kit"))
         self.index_path = path.join('.kit', 'INDEX')
-        self.temp_path = path.join('.kit', 'TEMP')
-
         self.drive = DriveManager(self.workspace_path)
         self.head = self.drive.get_head()
         self.seed = self.drive.get_seed()
@@ -225,6 +223,7 @@ class VersionControl:
 
     def __mark_merge_conflicts(self, conflicts: list):
         for file_path, main_hash, additional_hash in conflicts:
+            print(self.drive.merge_files_with_conflicts(main_hash, additional_hash))
             self.drive.write(file_path, '\n'.join(self.drive.merge_files_with_conflicts(main_hash, additional_hash)))
             self.add(file_path)
 
