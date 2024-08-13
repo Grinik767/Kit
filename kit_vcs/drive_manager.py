@@ -64,10 +64,6 @@ class DriveManager:
         with open(path.join(self.workspace_path, local_path), mode) as file:
             file.write(data)
 
-    def write_lines(self, local_path: str, data: list[str], mode: str = 'w') -> None:
-        with open(path.join(self.workspace_path, local_path), mode) as file:
-            file.writelines(data)
-
     def read(self, local_path: str) -> str:
         with open(path.join(self.workspace_path, local_path), 'r') as file:
             return file.read()
@@ -236,9 +232,9 @@ class DriveManager:
 
     def merge_files_with_conflicts(self, hash1, hash2):
         self.load_file(hash1, self.temp_path)
-        base_version = self.read(self.temp_path)
+        base_version = self.read(self.temp_path).split('\n')
         self.load_file(hash2, self.temp_path)
-        new_version = self.read(self.temp_path)
+        new_version = self.read(self.temp_path).split('\n')
 
         conflict_lines = []
         diff = ndiff(base_version, new_version)
@@ -250,11 +246,11 @@ class DriveManager:
         for line in diff:
             if line.startswith("  "):
                 if in_conflict:
-                    conflict_lines.append("<<<<<<< HEAD\n")
+                    conflict_lines.append("<<<<<<< HEAD")
                     conflict_lines.extend(base_conflict)
-                    conflict_lines.append("=======\n")
+                    conflict_lines.append("=======")
                     conflict_lines.extend(new_conflict)
-                    conflict_lines.append(">>>>>>> branch\n")
+                    conflict_lines.append(">>>>>>> branch")
                     in_conflict = False
                     base_conflict = []
                     new_conflict = []
@@ -273,11 +269,11 @@ class DriveManager:
                 new_conflict.append(line[2:])
 
         if in_conflict:
-            conflict_lines.append("<<<<<<< HEAD\n")
+            conflict_lines.append("<<<<<<< HEAD")
             conflict_lines.extend(base_conflict)
-            conflict_lines.append("=======\n")
+            conflict_lines.append("=======")
             conflict_lines.extend(new_conflict)
-            conflict_lines.append(">>>>>>> branch\n")
+            conflict_lines.append(">>>>>>> branch")
 
         self.remove(self.temp_path)
 
