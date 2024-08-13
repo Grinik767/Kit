@@ -225,7 +225,6 @@ class VersionControl:
 
     def __mark_merge_conflicts(self, conflicts: list):
         for file_path, main_hash, additional_hash in conflicts:
-            print(self.drive.merge_files_with_conflicts(main_hash, additional_hash))
             self.drive.write(file_path, '\n'.join(self.drive.merge_files_with_conflicts(main_hash, additional_hash)))
             self.add(file_path)
 
@@ -296,6 +295,4 @@ class VersionControl:
 
 
 if __name__ == '__main__':
-    vcs = VersionControl('DesMo', 'C:/Users\DesMo\OneDrive\Рабочий стол/123')
-    vcs.merge_commits('847f45871695c67907b338c909d32de4', '90f35e45dd24475c239162d9769f0808', '123')
     pass

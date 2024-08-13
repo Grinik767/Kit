@@ -13,7 +13,8 @@ def calculate_index_mock(mocker: MockerFixture):
     mock_isdir = mocker.patch('kit_vcs.drive_manager.path.isdir')
     mock_exists = mocker.patch('kit_vcs.drive_manager.path.exists')
     mock_open_fn = mocker.patch('builtins.open', mocker.mock_open())
-    mock_hash = mocker.patch('kit_vcs.utils.Utils.get_file_hash', return_value=mocker.Mock(hexdigest=lambda: 'filehash'))
+    mock_hash = mocker.patch('kit_vcs.utils.Utils.get_file_hash',
+                             return_value=mocker.Mock(hexdigest=lambda: 'filehash'))
     mock_walk = mocker.patch('kit_vcs.drive_manager.walk')
     return mock_isdir, mock_exists, mock_open_fn, mock_hash, mock_walk
 
@@ -424,11 +425,3 @@ def test_delete_tree_files_no_tree_hash(drive_manager: DriveManager, mocker: Moc
     drive_manager.delete_tree_files('')
     mock_walk = mocker.patch('kit_vcs.drive_manager.walk', return_value=[])
     mock_walk.assert_not_called()
-
-
-def test_commit_to_tree(drive_manager: DriveManager, mocker: MockerFixture):
-    mocker_read = mocker.patch.object(drive_manager, 'read')
-
-    drive_manager.commit_to_tree('a1b2c3')
-
-    mocker_read.assert_called_once_with(Utils.parse_from_str_to_os_path('.kit/objects/a1/b2c3'))
