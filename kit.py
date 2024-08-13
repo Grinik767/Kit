@@ -170,9 +170,17 @@ def log(ctx, patch, number):
             break
 
         if patch:
+            click.echo(f'\tChanged files:')
+
             for line in vcs.commits_diff(current_commit[0], previous_commit[0]):
                 sign, file = line.split(';')
+
                 click.echo(f'\t\t{3 * sign} {file}')
+                click.echo(f'\t\tChanges:')
+
+                for diff_line in vcs.files_diff(current_commit[0], previous_commit[0], file):
+                    sign, diff = diff_line.split(';')
+                    click.echo(f'\t\t\t{sign} {diff}')
 
         click.echo(f'\n\tCommit: {current_commit[0]}; User: {current_commit[1]}; Date: {current_commit[2]}; '
                    f'Message: {current_commit[3]}')

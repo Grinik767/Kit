@@ -96,12 +96,20 @@ class VersionControl:
 
     @Utils.check_repository_exists
     def commits_diff(self, commit1_hash: str, commit2_hash: str) -> (str, str, str):
-        tree1_hash = self.drive.get_commit_tree_hash(commit1_hash)
-        tree2_hash = self.drive.get_commit_tree_hash(commit2_hash)
-        tree1_path = path.abspath(path.join('.kit', "objects", tree1_hash[:2], tree1_hash[2:]))
-        tree2_path = path.abspath(path.join('.kit', "objects", tree2_hash[:2], tree2_hash[2:]))
+        tree1_path = self.drive.commit_to_tree_path(commit1_hash)
+        tree2_path = self.drive.commit_to_tree_path(commit2_hash)
 
         for line in Utils.get_tree_diff(tree1_path, tree2_path):
+            yield line
+
+    @Utils.check_repository_exists
+    def files_diff(self, commit1_hash: str, commit2_hash: str, file: str) -> (str, str):
+        file1_path = path.join(self.drive.commit_to_tree_path(commit1_hash), file)
+        file2_path = path.join(self.drive.commit_to_tree_path(commit2_hash), file)
+        file1_hash = self.drive.read(file1_path) if path.exists(file1_path) else None
+        file2_hash = self.drive.read(file2_path) if path.exists(file2_path) else None
+
+        for line in self.drive.get_files_diff(file1_hash, file2_hash):
             yield line
 
     @Utils.check_repository_exists
@@ -252,14 +260,15 @@ class VersionControl:
                 main_file_path = path.join(main_tree_path, rel_path, file)
                 additional_file_path = path.join(additional_tree_path, rel_path, file)
                 drive_additional_file_path = path.join('.kit', 'objects', additional_file_path)
-
                 main_file_hash = self.drive.read(path.join('.kit', 'objects', main_file_path))
+
                 if not self.drive.is_exist(drive_additional_file_path):
                     self.drive.load_file(main_file_hash, path.join(self.workspace_path, rel_path, file))
                     self.add(path.join(rel_path, file))
                     continue
 
                 additional_file_hash = self.drive.read(path.join('.kit', 'objects', additional_file_path))
+
                 if main_file_hash != additional_file_hash:
                     conflicts.append((path.join(rel_path, file), main_file_hash, additional_file_hash))
 
@@ -287,4 +296,6 @@ class VersionControl:
 
 
 if __name__ == '__main__':
+    vcs = VersionControl('DesMo', 'C:/Users\DesMo\OneDrive\Рабочий стол/123')
+    vcs.merge_commits('847f45871695c67907b338c909d32de4', '90f35e45dd24475c239162d9769f0808', '123')
     pass
