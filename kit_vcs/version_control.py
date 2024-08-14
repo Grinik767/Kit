@@ -215,7 +215,7 @@ class VersionControl:
         if not self.drive.is_exist(path.join(self.repo_path, 'objects', additional_commit[:2], additional_commit[2:])):
             raise errors.NotFoundError(f"Commit {additional_commit} not found")
 
-        if not cherry_pick and self.__is_ancestor(main_commit, additional_commit):
+        if not cherry_pick and self.drive.is_ancestor(main_commit, additional_commit):
             self.__update_head(additional_commit)
             self.__load_commit_data(additional_commit)
             return
@@ -287,18 +287,6 @@ class VersionControl:
                     conflicts.append((path.join(rel_path, file), main_file_hash, additional_file_hash))
 
         return conflicts
-
-    def __is_ancestor(self, base_commit_id: str, target_commit_id: str) -> bool:
-        name = target_commit_id
-
-        while name != 'None':
-            if name == base_commit_id:
-                return True
-
-            parent = self.drive.read(path.join('.kit', "objects", name[:2], name[2:])).split('\n')[4]
-            name = parent
-
-        return False
 
     def __update_head(self, new_head: str) -> None:
         self.current_id = new_head
