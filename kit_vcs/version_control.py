@@ -73,16 +73,13 @@ class VersionControl:
 
     @Utils.check_repository_exists
     def amend(self, description: str) -> None:
-        old_id = self.current_id
         parent = self.drive.read(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:])).split('\n')[4]
         self.commit(description)
+
         user, date, description, tree, _ = self.drive.read(path.join('.kit', 'objects', self.current_id[:2],
                                                                      self.current_id[2:])).split('\n')
         self.drive.write(path.join('.kit', 'objects', self.current_id[:2], self.current_id[2:]),
                          '\n'.join([user, date, description, tree, parent]))
-
-        self.drive.remove(path.join('.kit', 'objects', old_id[:2], old_id[2:]))
-        self.drive.delete_if_empty(path.join('.kit', 'objects', old_id[:2]))
 
     @Utils.check_repository_exists
     def commits_list(self) -> (str, str, str, str):
@@ -224,6 +221,7 @@ class VersionControl:
             return
 
         conflicts = self.__try_merge_commits(main_commit, additional_commit)
+        self.__try_merge_commits(additional_commit, main_commit)
         if conflicts:
             self.__mark_merge_conflicts(conflicts)
 
