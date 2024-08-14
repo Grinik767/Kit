@@ -27,6 +27,14 @@ def save_tree_mock(mocker: MockerFixture):
     return mock_makedirs, mock_exists, mock_copy_tree
 
 
+@pytest.fixture
+def get_files_diff_merge_files_mock(drive_manager: DriveManager, mocker: MockerFixture):
+    mock_load_file = mocker.patch.object(drive_manager, 'load_file')
+    mock_read = mocker.patch.object(drive_manager, 'read', return_value="line1\nline2\n")
+    mock_remove = mocker.patch.object(drive_manager, 'remove')
+    return mock_load_file, mock_read, mock_remove, drive_manager
+
+
 def test_save_file(drive_manager: DriveManager, mocker: MockerFixture):
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data=b'test data'))
     mock_lzma_open = mocker.patch('lzma.open', mocker.mock_open())
@@ -180,7 +188,7 @@ def test_is_exist(drive_manager: DriveManager, mocker: MockerFixture):
     assert result is True
 
 
-def test_delete_if_empty_file(drive_manager, mocker):
+def test_delete_if_empty_file(drive_manager: DriveManager, mocker: MockerFixture):
     mock_exist = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
     mock_isfile = mocker.patch('kit_vcs.drive_manager.path.isfile', return_value=True)
     mock_getsize = mocker.patch('kit_vcs.drive_manager.path.getsize', return_value=0)
@@ -193,6 +201,31 @@ def test_delete_if_empty_file(drive_manager, mocker):
     mock_isfile.assert_called_once_with(full_path)
     mock_getsize.assert_called_once_with(full_path)
     mock_remove.assert_called_once_with(full_path)
+
+
+def test_delete_if_empty_dir(drive_manager: DriveManager, mocker: MockerFixture):
+    mock_exist = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=True)
+    mock_isfile = mocker.patch('kit_vcs.drive_manager.path.isfile', return_value=False)
+    mock_isdir = mocker.patch('kit_vcs.drive_manager.path.isdir', return_value=True)
+    mock_listdir = mocker.patch('kit_vcs.drive_manager.listdir', return_value=[])
+    mock_rmdir = mocker.patch('kit_vcs.drive_manager.rmdir')
+
+    drive_manager.delete_if_empty(Utils.parse_from_str_to_os_path('local/path/dir'))
+    full_path = Utils.parse_from_str_to_os_path('/fake/workspace/local/path/dir')
+
+    mock_exist.assert_called_once_with(full_path)
+    mock_isfile.assert_called_once_with(full_path)
+    mock_isdir.assert_called_once_with(full_path)
+    mock_listdir.assert_called_once_with(full_path)
+    mock_rmdir.assert_called_once_with(full_path)
+
+
+def test_delete_if_empty_not_exist(drive_manager: DriveManager, mocker: MockerFixture):
+    mock_exist = mocker.patch('kit_vcs.drive_manager.path.exists', return_value=False)
+
+    drive_manager.delete_if_empty(Utils.parse_from_str_to_os_path('local/path/dir'))
+
+    mock_exist.assert_called_once_with(Utils.parse_from_str_to_os_path('/fake/workspace/local/path/dir'))
 
 
 def test_get_files_in_dir(drive_manager: DriveManager, mocker: MockerFixture):
@@ -427,3 +460,168 @@ def test_delete_tree_files_no_tree_hash(drive_manager: DriveManager, mocker: Moc
     drive_manager.delete_tree_files('')
     mock_walk = mocker.patch('kit_vcs.drive_manager.walk', return_value=[])
     mock_walk.assert_not_called()
+
+
+def test_commit_to_tree_path(drive_manager: DriveManager, mocker: MockerFixture):
+    fullpath = Utils.parse_from_str_to_os_path("/fake/path/to/tree")
+
+    mocker.patch("kit_vcs.drive_manager.path.abspath", return_value=fullpath)
+    mocker.patch.object(drive_manager, "get_commit_tree_hash", return_value="1234567890abcdef")
+
+    assert drive_manager.commit_to_tree_path("1234567890abcdef") == fullpath
+
+
+def test_get_files_diff_hash1_none_hash2_exists(
+        get_files_diff_merge_files_mock: (MockerFixture, MockerFixture, MockerFixture, DriveManager)):
+    mock_load_file, mock_read, mock_remove, drive_mng = get_files_diff_merge_files_mock
+
+    diff = list(drive_mng.get_files_diff(None, "123456"))
+
+    mock_load_file.assert_called_once_with("123456", drive_mng.temp_path)
+    mock_read.assert_called_once_with(drive_mng.temp_path)
+    mock_remove.assert_called_once_with(drive_mng.temp_path)
+
+    assert diff == ['+;line1', '+;line2']
+
+
+def test_get_files_diff_hash1_exists_hash2_none(
+        get_files_diff_merge_files_mock: (MockerFixture, MockerFixture, MockerFixture, DriveManager)):
+    mock_load_file, mock_read, _, drive_mng = get_files_diff_merge_files_mock
+
+    diff = list(drive_mng.get_files_diff("abcdef", None))
+
+    mock_load_file.assert_called_once_with("abcdef", drive_mng.temp_path)
+    mock_read.assert_called_once_with(drive_mng.temp_path)
+
+    assert diff == ['-;line1', '-;line2']
+
+
+def test_get_files_diff_hash1_exists_hash2_exists(
+        get_files_diff_merge_files_mock: (MockerFixture, MockerFixture, MockerFixture, DriveManager)):
+    mock_load_file, mock_read, mock_remove, drive_mng = get_files_diff_merge_files_mock
+    mock_read.side_effect = [
+        "line1\nline2\n",
+        "line1\nline3\n"
+    ]
+
+    diff = list(drive_mng.get_files_diff("abcdef", "123456"))
+
+    assert mock_load_file.call_count == 2
+    mock_load_file.assert_any_call("abcdef", drive_mng.temp_path)
+    mock_load_file.assert_any_call("123456", drive_mng.temp_path)
+    mock_remove.assert_called_once_with(drive_mng.temp_path)
+    assert mock_read.call_count == 2
+
+    assert diff == ['-;line2', '+;line3']
+
+
+def test_merge_files_with_conflicts(
+        get_files_diff_merge_files_mock: (MockerFixture, MockerFixture, MockerFixture, DriveManager)):
+    mock_load_file, mock_read, mock_remove, drive_mng = get_files_diff_merge_files_mock
+    mock_read.side_effect = [
+        "line1\nline2\n",
+        "line1\nline2\n"
+    ]
+
+    result = drive_mng.merge_files_with_conflicts("hash1", "hash2")
+
+    assert mock_load_file.call_count == 2
+    mock_load_file.assert_any_call("hash1", drive_mng.temp_path)
+    mock_load_file.assert_any_call("hash2", drive_mng.temp_path)
+    mock_remove.assert_called_once_with(drive_mng.temp_path)
+
+    assert result == ["line1", "line2"]
+
+
+def test_merge_files_with_conflicts_with_conflict(
+        get_files_diff_merge_files_mock: (MockerFixture, MockerFixture, MockerFixture, DriveManager)):
+    mock_load_file, mock_read, mock_remove, drive_mng = get_files_diff_merge_files_mock
+    mock_read.side_effect = [
+        "line1\nline2\nline4\nline2",
+        "line1\nline3\nline4\nline1"
+    ]
+
+    result = drive_mng.merge_files_with_conflicts("hash1", "hash2")
+
+    assert mock_load_file.call_count == 2
+    mock_load_file.assert_any_call("hash1", drive_mng.temp_path)
+    mock_load_file.assert_any_call("hash2", drive_mng.temp_path)
+    mock_remove.assert_called_once_with(drive_mng.temp_path)
+
+    expected_result = ['line1',
+                       '<<<<<<< YOURS',
+                       'line2',
+                       '=======',
+                       'line3',
+                       '>>>>>>> THEIRS',
+                       'line4',
+                       '<<<<<<< YOURS',
+                       'line2',
+                       '=======',
+                       'line1',
+                       '>>>>>>> THEIRS']
+    assert result == expected_result
+
+
+@pytest.mark.parametrize("commit_chain, base_commit, target_commit, expected", [
+    (
+            {
+                "commit1": "None",
+                "commit2": "commit1",
+                "commit3": "commit2",
+            },
+            "commit1",
+            "commit3",
+            True
+    ),
+    (
+            {
+                "commit1": "None",
+                "commit2": "commit1",
+                "commit3": "commit2",
+                "commit4": "commit3",
+            },
+            "commit1",
+            "commit4",
+            True
+    ),
+    (
+            {
+                "commit1": "None",
+                "commit2": "commit1",
+                "commit3": "commit2",
+                "commit4": "commit1",
+            },
+            "commit2",
+            "commit4",
+            False
+    ),
+    (
+            {
+                "commit1": "None",
+                "commit2": "commit1",
+                "commit3": "commit2",
+            },
+            "commit3",
+            "commit1",
+            False
+    ),
+    (
+            {
+                "commit1": "None",
+                "commit2": "commit1",
+            },
+            "commit2",
+            "commit2",
+            True
+    ),
+])
+def test_is_ancestor(drive_manager: DriveManager, mocker: MockerFixture, commit_chain: dict, base_commit: str,
+                     target_commit: str, expected: bool):
+    def mock_read(commit_path):
+        commit_id = ''.join(commit_path.split(sep)[-2:])
+        return f"username\ncommit_dt\ndescription\ntree\n{commit_chain[commit_id]}"
+
+    mocker.patch.object(drive_manager, 'read', side_effect=mock_read)
+
+    assert drive_manager.is_ancestor(base_commit, target_commit) == expected

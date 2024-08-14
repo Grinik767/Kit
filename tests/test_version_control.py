@@ -187,3 +187,35 @@ def test_current_branch_not_on_branch(version_control: VersionControl, mock_driv
 
     with pytest.raises(errors.NotOnBranchError):
         version_control.current_branch()
+
+
+def test_get_branch_head_success(version_control: VersionControl, dir_exists_mock: MockerFixture, mock_drive_manager):
+    mock_read = mock_drive_manager.read
+    mock_drive_manager.is_exist.return_value = True
+
+    version_control.get_branch_head("main")
+
+    mock_read.assert_called_once_with(Utils.parse_from_str_to_os_path('.kit/refs/heads/main'))
+
+
+def test_get_branch_head_fail(version_control: VersionControl, dir_exists_mock: MockerFixture, mock_drive_manager):
+    mock_drive_manager.is_exist.return_value = False
+
+    with pytest.raises(errors.NotFoundError):
+        version_control.get_branch_head("main")
+
+
+'''
+def test_commits_diff(version_control: VersionControl, mock_drive_manager, dir_exists_mock: MockerFixture):
+    mock_drive_manager.commit_to_tree_path.side_effect = ["path/to/tree1", "path/to/tree2"]
+    mock_tree_diff = ["file1.txt\n", "file2.txt\n"]
+
+    mock1 = dir_exists_mock.patch('kit_vcs.utils.Utils.get_tree_diff', return_value=mock_tree_diff)
+
+    result = list(version_control.commits_diff("commit1_hash", "commit2_hash"))
+
+    mock1.assert_any_call()
+
+    assert result == mock_tree_diff
+    
+'''
