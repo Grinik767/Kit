@@ -317,6 +317,18 @@ class DriveManager:
 
         return conflict_lines
 
+    def is_ancestor(self, base_commit_id: str, target_commit_id: str) -> bool:
+        name = target_commit_id
+
+        while name != 'None':
+            if name == base_commit_id:
+                return True
+
+            parent = self.read(path.join('.kit', "objects", name[:2], name[2:])).split('\n')[4]
+            name = parent
+
+        return False
+
 
 if __name__ == '__main__':
     pass
