@@ -64,13 +64,11 @@ def test_get_tree_hash(tmp_path, mocker: MockerFixture):
 
 
 def test_bool_to_sign():
-    assert Utils.bool_to_sign(True) == "+"
-    assert Utils.bool_to_sign(False) == "-"
+    assert Utils.bool_to_sign(True) == "+" and Utils.bool_to_sign(False) == "-"
 
 
 def test_sign_to_bool():
-    assert Utils.sign_to_bool("+") is True
-    assert Utils.sign_to_bool("-") is False
+    assert Utils.sign_to_bool("+") is True and Utils.sign_to_bool("-") is False
 
 
 def test_parse_from_str_to_os_path():
@@ -79,9 +77,28 @@ def test_parse_from_str_to_os_path():
 
 def test_check_for_dot_path(mocker: MockerFixture):
     mocker.patch('kit_vcs.utils.path.isfile', return_value=True)
-    assert Utils.check_for_dot_path("a\\.b\\c.txt") is True
-    assert Utils.check_for_dot_path("a\\b\\c.txt") is False
+    assert Utils.check_for_dot_path("a\\.b\\c.txt") is True and Utils.check_for_dot_path("a\\b\\c.txt") is False
 
     mocker.patch('kit_vcs.utils.path.isfile', return_value=False)
-    assert Utils.check_for_dot_path("a\\.b\\c") is True
-    assert Utils.check_for_dot_path("a\\b\\c") is False
+    assert Utils.check_for_dot_path("a\\.b\\c") is True and Utils.check_for_dot_path("a\\b\\c") is False
+
+
+def test_get_relative_paths(mocker: MockerFixture):
+    mock_walk = mocker.patch('kit_vcs.utils.walk')
+
+    mock_walk.return_value = [
+        ('/mocked/dir', ('subdir1', 'subdir2'), ('file1.txt', 'file2.txt')),
+        ('/mocked/dir/subdir1', (), ('file3.txt',)),
+        ('/mocked/dir/subdir2', (), ('file4.txt',)),
+    ]
+
+    expected_result = {
+        'file1.txt',
+        'file2.txt',
+        Utils.parse_from_str_to_os_path('subdir1/file3.txt'),
+        Utils.parse_from_str_to_os_path('subdir2/file4.txt'),
+    }
+
+    result = Utils.get_relative_paths('/mocked/dir')
+
+    assert result == expected_result
