@@ -205,17 +205,32 @@ def test_get_branch_head_fail(version_control: VersionControl, dir_exists_mock: 
         version_control.get_branch_head("main")
 
 
-'''
-def test_commits_diff(version_control: VersionControl, mock_drive_manager, dir_exists_mock: MockerFixture):
+def test_commits_diff(version_control: VersionControl, mock_drive_manager, mocker: MockerFixture):
     mock_drive_manager.commit_to_tree_path.side_effect = ["path/to/tree1", "path/to/tree2"]
+    mock_exists = mocker.patch('kit_vcs.utils.path.isdir', return_value=True)
+    mock_exists.patch('kit_vcs.utils.Utils.check_repository_exists', lambda x: x)
+
     mock_tree_diff = ["file1.txt\n", "file2.txt\n"]
 
-    mock1 = dir_exists_mock.patch('kit_vcs.utils.Utils.get_tree_diff', return_value=mock_tree_diff)
+    mock_get_tree_diff = mocker.patch('kit_vcs.utils.Utils.get_tree_diff', return_value=mock_tree_diff)
 
     result = list(version_control.commits_diff("commit1_hash", "commit2_hash"))
 
-    mock1.assert_any_call()
+    mock_get_tree_diff.assert_called_once_with("path/to/tree1", "path/to/tree2")
 
     assert result == mock_tree_diff
-    
-'''
+
+
+def test_files_diff(version_control: VersionControl, mock_drive_manager, mocker: MockerFixture):
+    mock_exists = mocker.patch('kit_vcs.utils.path.isdir', return_value=True)
+    mock_exists.patch('kit_vcs.utils.Utils.check_repository_exists', lambda x: x)
+
+    mock_drive_manager.commit_to_tree_path.side_effect = ["path/to/tree1", "path/to/tree2"]
+    mock_drive_manager.read.side_effect = ["file1_hash", "file2_hash"]
+    mock_files_diff = ["line1\n", "line2\n"]
+
+    mocker.patch.object(mock_drive_manager, 'get_files_diff', return_value=mock_files_diff)
+
+    result = list(version_control.files_diff("commit1_hash", "commit2_hash", "test_file.txt"))
+
+    assert result == mock_files_diff
