@@ -24,22 +24,6 @@ class Utils:
         return wrapper
 
     @staticmethod
-    def get_tree_diff(tree1_path: str, tree2_path: str) -> list[str]:
-        result = []
-        added_files, removed_files, changed_files = Utils.__compare_trees(tree1_path, tree2_path)
-
-        for file in sorted(added_files):
-            result.append(f"+;{file}")
-
-        for file in sorted(changed_files):
-            result.append(f"~;{file}")
-
-        for file in sorted(removed_files):
-            result.append(f"-;{file}")
-
-        return result
-
-    @staticmethod
     def get_file_hash(abs_path: str, workspace_path: str, seed: int) -> xxh3_128:
         assert path.isfile(abs_path)
         cur_hash = xxh3_128(path.relpath(abs_path, start=workspace_path), seed=seed)
@@ -72,7 +56,7 @@ class Utils:
         return True if value == '+' else False
 
     @staticmethod
-    def __get_relative_paths(dir_path: str) -> set[str]:
+    def get_relative_paths(dir_path: str) -> set[str]:
         relative_paths = set()
 
         for root, _, files in walk(dir_path):
@@ -82,31 +66,6 @@ class Utils:
                 relative_paths.add(relative_path)
 
         return relative_paths
-
-    @staticmethod
-    def __read_file_content(file_path: str) -> bytes:
-        with open(file_path, 'rb') as file:
-            return file.read()
-
-    @staticmethod
-    def __compare_trees(tree1: str, tree2: str) -> (set[str], set[str], set[str]):
-        dir1_files = Utils.__get_relative_paths(tree1)
-        dir2_files = Utils.__get_relative_paths(tree2)
-
-        removed_files = dir1_files - dir2_files
-        added_files = dir2_files - dir1_files
-
-        common_files = dir1_files & dir2_files
-
-        changed_files = set()
-        for file in common_files:
-            file1 = path.join(tree1, file)
-            file2 = path.join(tree2, file)
-
-            if Utils.__read_file_content(file1) != Utils.__read_file_content(file2):
-                changed_files.add(file)
-
-        return added_files, removed_files, changed_files
 
     @staticmethod
     def parse_from_str_to_os_path(string_path: str):
