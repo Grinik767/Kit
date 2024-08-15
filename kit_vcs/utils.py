@@ -2,14 +2,15 @@ import lzma
 import platform
 import subprocess
 from datetime import datetime
+from difflib import ndiff
 from distutils.dir_util import copy_tree
-from os import makedirs, path, remove, rmdir, sep, walk, listdir
+from os import listdir, makedirs, path, remove, rmdir, sep, walk
 from random import randint
 
 import pytest
 from pytest_mock import MockerFixture
 from xxhash import xxh3_128
-from difflib import ndiff
+
 import kit_vcs.errors as errors
 
 
