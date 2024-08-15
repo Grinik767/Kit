@@ -212,7 +212,7 @@ def test_commits_diff(version_control: VersionControl, mock_drive_manager, mocke
 
     mock_tree_diff = ["file1.txt\n", "file2.txt\n"]
 
-    mock_get_tree_diff = mocker.patch('kit_vcs.utils.Utils.get_tree_diff', return_value=mock_tree_diff)
+    mock_get_tree_diff = mocker.patch.object(mock_drive_manager, 'get_tree_diff', return_value=mock_tree_diff)
 
     result = list(version_control.commits_diff("commit1_hash", "commit2_hash"))
 
