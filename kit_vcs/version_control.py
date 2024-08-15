@@ -96,7 +96,7 @@ class VersionControl:
         tree1_path = self.drive.commit_to_tree_path(commit1_hash)
         tree2_path = self.drive.commit_to_tree_path(commit2_hash)
 
-        for line in DriveManager.get_tree_diff(tree1_path, tree2_path):
+        for line in self.drive.get_tree_diff(tree1_path, tree2_path):
             yield line
 
     @Utils.check_repository_exists
