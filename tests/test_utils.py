@@ -21,13 +21,6 @@ def test_check_repository_exists_fail(mocker: MockerFixture):
         decorated_method(Utils)
 
 
-def test_get_tree_diff(mocker: MockerFixture):
-    mocker.patch('kit_vcs.utils.Utils._Utils__compare_trees',
-                 return_value=({'added_file'}, {'removed_file'}, {'changed_file'}))
-    diff = Utils.get_tree_diff('/path/to/tree1', '/path/to/tree2')
-    assert diff == ['+;added_file', '~;changed_file', '-;removed_file']
-
-
 def test_get_file_hash(tmp_path, mocker: MockerFixture):
     test_file = tmp_path / "test_file.txt"
     test_file.write_text("content")

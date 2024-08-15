@@ -268,6 +268,47 @@ class DriveManager:
 
         return self.remove(self.temp_path)
 
+    @staticmethod
+    def get_tree_diff(tree1_path: str, tree2_path: str) -> list[str]:
+        result = []
+        added_files, removed_files, changed_files = DriveManager.compare_trees(tree1_path, tree2_path)
+
+        for file in sorted(added_files):
+            result.append(f"+;{file}")
+
+        for file in sorted(changed_files):
+            result.append(f"~;{file}")
+
+        for file in sorted(removed_files):
+            result.append(f"-;{file}")
+
+        return result
+
+    @staticmethod
+    def compare_trees(tree1: str, tree2: str) -> (set[str], set[str], set[str]):
+        dir1_files = Utils.get_relative_paths(tree1)
+        dir2_files = Utils.get_relative_paths(tree2)
+
+        removed_files = dir1_files - dir2_files
+        added_files = dir2_files - dir1_files
+
+        common_files = dir1_files & dir2_files
+
+        changed_files = set()
+        for file in common_files:
+            file1 = path.join(tree1, file)
+            file2 = path.join(tree2, file)
+
+            if DriveManager.read_file_content(file1) != DriveManager.read_file_content(file2):
+                changed_files.add(file)
+
+        return added_files, removed_files, changed_files
+
+    @staticmethod
+    def read_file_content(file_path: str) -> bytes:
+        with open(file_path, 'rb') as file:
+            return file.read()
+
     def merge_files_with_conflicts(self, hash1: str, hash2: str) -> list[str]:
         self.load_file(hash1, self.temp_path)
         base_version = self.read(self.temp_path).splitlines()

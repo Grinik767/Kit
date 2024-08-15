@@ -625,3 +625,33 @@ def test_is_ancestor(drive_manager: DriveManager, mocker: MockerFixture, commit_
     mocker.patch.object(drive_manager, 'read', side_effect=mock_read)
 
     assert drive_manager.is_ancestor(base_commit, target_commit) == expected
+
+
+def test_get_tree_diff(mocker: MockerFixture):
+    mocker.patch('kit_vcs.drive_manager.DriveManager.compare_trees',
+                 return_value=({'added_file'}, {'removed_file'}, {'changed_file'}))
+
+    diff = DriveManager.get_tree_diff('/path/to/tree1', '/path/to/tree2')
+
+    assert diff == ['+;added_file', '~;changed_file', '-;removed_file']
+
+
+def test_compare_trees(mocker: MockerFixture):
+    mock_get_relative_paths = mocker.patch('kit_vcs.utils.Utils.get_relative_paths')
+    mock_read_file_content = mocker.patch('kit_vcs.drive_manager.DriveManager.read_file_content')
+
+    mock_get_relative_paths.side_effect = [
+        {"file1.txt", "file2.txt"},
+        {"file1.txt", "file3.txt"}
+    ]
+    mock_read_file_content.side_effect = ["content1", "content2"]
+
+    added_files, removed_files, changed_files = DriveManager.compare_trees("tree1", "tree2")
+
+    assert added_files == {"file3.txt"} and removed_files == {"file2.txt"} and changed_files == {"file1.txt"}
+
+
+def test_read_file_content(mocker: MockerFixture):
+    mocker.patch('builtins.open', mocker.mock_open(read_data=b'filehash'))
+
+    assert DriveManager.read_file_content("/path/to/file1.txt") == b'filehash'
