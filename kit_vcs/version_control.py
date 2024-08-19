@@ -1,5 +1,10 @@
+from datetime import datetime
+from os import path, walk
+from random import randint
+
+import kit_vcs.errors as errors
 from kit_vcs.drive_manager import DriveManager
-from kit_vcs.utils import *
+from kit_vcs.utils import Utils
 
 
 class VersionControl:

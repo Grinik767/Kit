@@ -1,4 +1,12 @@
-from kit_vcs.utils import *
+import lzma
+import platform
+import subprocess
+from datetime import datetime
+from difflib import ndiff
+from distutils.dir_util import copy_tree
+from os import listdir, makedirs, path, remove, rmdir, walk
+
+from kit_vcs.utils import Utils
 
 
 class DriveManager:

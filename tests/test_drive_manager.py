@@ -1,5 +1,11 @@
+import platform
+from os import sep
+
+import pytest
+from pytest_mock import MockerFixture
+
 from kit_vcs.drive_manager import DriveManager
-from kit_vcs.utils import *
+from kit_vcs.utils import Utils
 
 
 @pytest.fixture
